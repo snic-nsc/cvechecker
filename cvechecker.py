@@ -6,7 +6,7 @@ from collections import OrderedDict
 from hashlib import sha256
 import simplejson as json
 from numbers import Number
-import urllib2
+import urllib
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
@@ -131,6 +131,7 @@ class CVECheck:
 		self.sources['redhat']='https://access.redhat.com/labs/securitydataapi/cve.json'
 		self.vulnjson=vulnjson
 		self.vulnobj=OrderedDict()
+		self.cksumfile='sha256sums'
 
 	def setupRef(self,refdict):
 		refdict['source']='local'
@@ -140,47 +141,44 @@ class CVECheck:
 		refdict['definitions']=list()
 		return refdict
 
-	def updateVulns(self):
-		for key, val in self.sources.iteritems():
-			try:
-				obj=json.load(urllib2.urlopen(val))
-				print obj
-				return
-			except:
-				print 'unable to fetch vuln obj'
-				raise
-				sys.exit(-1)
-		try:
-			xdxffile.retrieve('http://folkets-lexikon.csc.kth.se/folkets/folkets_sv_en_public.xdxf','sveeng.xdxf')
-			xdxffile.retrieve('http://folkets-lexikon.csc.kth.se/folkets/folkets_en_sv_public.xdxf','engsve.xdxf')
-			print 'Successfully updated the XDXF word definitions file'
-		except:
-			print 'Unable to fetch XDXF file. Are you connected to the internet?'
-			sys.exit(-1)
+	def updatefromRedhat(self,url):
+			self.checkforChanges(url,'redhat-cve.json')
+			#this is where the redhat obj gets initialized
 
+	def checkforChanges(self,url,fname):
+		try:
+			vulnlist = urllib.URLopener()
+			vulnlist.retrieve(url,fname)
+		except:
+			print 'unable to fetch file %s'%(fname)
+		
 		cksums=OrderedDict()
 		try:
-			with open('sha256sums','r') as infile:
+			with open(self.cksumfile,'r') as infile:
 				lines=infile.readlines()
 			for line in lines:
 				cksums[line.split(' ')[1].split('\n')[0]]=line.split(' ')[0]
 			changed=0
-			for file in cksums:
-				with open(file,'rb') as infile:
+			with open(fname,'rb') as infile:
 					sha256sum=sha256(infile.read()).hexdigest()
-				if cksums[file] != sha256sum:
-					print "File %s has changed!"%(file)
-					cksums[file]=sha256sum
-					changed=1
+			if cksums[fname] != sha256sum:
+				print "Vulnerability store file %s has been updated."%(fname)
+				cksums[fname]=sha256sum
+				changed=1
 			if changed == 0:
-				print "No changes found in the XDXF files"
+				print "No changes found in vulnerability store file %s"%(fname)
 			else:
 				with open('sha256sums','w') as outfile:
 					for file in cksums:
 						outfile.write("%s %s\n"%(cksums[file],file))
-				self.readXdxf()
 		except:
 			print "Could not look up old checksums"
+
+	def updateStore(self):
+		for key, val in self.sources.iteritems():
+			if key == 'redhat':
+				self.updatefromRedhat(val)
+				#self.readXdxf()
 
 	def readStore(self):
 		try:
@@ -413,18 +411,18 @@ argsdict['scores']=None
 argsdict['products']=None
 argsdict['packages']=None
 
-myobj=CVECheck('vuln.json')
-newobj=Result()
-newobj.addResult('101','101 dalmations is the description',10.0,['dalmations'],['Dalmations 101'])
-newobj.addResult('102','James Cameron is the description',4.0,['titanic'],['Titanic the movie'])
-newobj.addResult('102','James Cameron is the description',4.0,['Apache'],['Apache Tomcat'])
+cvcobj=CVECheck('vuln.json')
+resobj=Result()
+resobj.addResult('101','101 dalmations is the description',10.0,['dalmations'],['Dalmations 101'])
+resobj.addResult('102','James Cameron is the description',4.0,['titanic'],['Titanic the movie'])
+resobj.addResult('102','James Cameron is the description',4.0,['Apache'],['Apache Tomcat'])
 
 if cve != 'none':
 	print 'you have entered a CVE lookup request. Sit tight'
 	sys.exit(0)
 
 if update != 'none':
-	print 'you have asked to update. Sit tight'
+	cvcobj.updateStore()
 	sys.exit(0)
 
 if severity != 'none':
@@ -445,7 +443,5 @@ if package != 'none':
 
 
 
-#newobj.trimResult(scores=['Critical','High','Medium'])
-#newobj.trimResult(products=['titanic'])
 newobj.trimResult(scores=argsdict['scores'],products=argsdict['products'],packages=argsdict['packages'])
 newobj.printResult(scores=argsdict['scores'],products=argsdict['products'],packages=argsdict['packages'])
