@@ -1,0 +1,27 @@
+usage: cvechecker.py [-h] [-c CVE] [-u [UPDATE]] [-s SEVERITY] [-p PRODUCT]
+                     [-pkg PACKAGE] [-m MARK]
+
+A tool to fetch and update a local vulnerability store against select sources
+of vulnerability information. It can be queried for specific CVEs, by severity
+or product name, or a combination. Entries can be marked as "seen" to allow
+one to "mute" alerts for onal words into the corpus.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c CVE, --cve CVE     output information about specified CVE or comma-
+                        separated list of CVEs. Cannot be combined with any
+                        other filter/option.
+  -u [UPDATE], --update [UPDATE]
+                        update the store. Cannot be combined with any other
+                        option/filter.
+  -s SEVERITY, --severity SEVERITY
+                        filter results by severity level. Valid levels are
+                        "None", "Low", "Medium", "High", and "Critical".
+  -p PRODUCT, --product PRODUCT
+                        filter results by specified product name or comma-
+                        separated list of products.
+  -pkg PACKAGE, --package PACKAGE
+                        filter results by specified product name or comma-
+                        separated list of products.
+  -m MARK, --mark MARK  mark resulting matches as "seen" or "unseen". Must be
+                        used in combination with one or more filters.
