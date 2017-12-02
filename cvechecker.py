@@ -443,5 +443,5 @@ if package != 'none':
 
 
 
-newobj.trimResult(scores=argsdict['scores'],products=argsdict['products'],packages=argsdict['packages'])
-newobj.printResult(scores=argsdict['scores'],products=argsdict['products'],packages=argsdict['packages'])
+resobj.trimResult(scores=argsdict['scores'],products=argsdict['products'],packages=argsdict['packages'])
+resobj.printResult(scores=argsdict['scores'],products=argsdict['products'],packages=argsdict['packages'])
