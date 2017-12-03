@@ -1,2 +1,6 @@
 redhat-cve.json
 sha256sums
+listedcves
+listedpkgs
+listedscores
+vulnstore.json

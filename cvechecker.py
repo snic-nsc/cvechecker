@@ -12,12 +12,9 @@ sys.setdefaultencoding('utf-8')
 
 class Result:
 	def __init__(self):
-		self.state='empty'
 		self.resultdict=dict()
-		self.cves=list()
 	
 	def addResult(self, cveid, cvedesc, cvescore, affectedpackages, affectedproducts):
-		self.state='filtered'
 		if self.resultdict.__contains__(cveid):
 			dosomething=1
 			for pkg in affectedpackages:
@@ -31,6 +28,7 @@ class Result:
 			self.resultdict[cveid]=OrderedDict()
 			self.resultdict[cveid]['score']=cvescore
 			self.resultdict[cveid]['desc']=cvedesc
+			self.resultdict[cveid]['mute']='off'
 			self.resultdict[cveid]['affectedpackages']=list()
 			for pkg in affectedpackages:
 				self.resultdict[cveid]['affectedpackages'].append(pkg)
@@ -38,7 +36,7 @@ class Result:
 			for pkg in affectedproducts:
 				self.resultdict[cveid]['affectedproducts'].append(pkg)
 
-	def trimResult(self,products=None, packages=None ,scores=None):
+	def trimResult(self,products=None, packages=None ,scores=None, mute='none'):
 
 		scoredefs=OrderedDict()
 		scoredefs['None']={'high':0.0, 'low':0.0}
@@ -86,16 +84,35 @@ class Result:
 					continue
 
 			newresultdict[key]=val
+		if mute != 'none':
+			for entry in newresultdict:
+				newresultdict[entry]['mute']=mute
+				self.resultdict[entry]['mute']=mute
+
+			with codecs.open('vulnstore.json','w','utf-8') as outfile:
+				json.dump(self.resultdict,outfile)
 		self.resultdict=newresultdict
 
+	def printMuted(self):
+		for key, value in self.resultdict.iteritems():
+			if value['mute'] == 'on':
+				print key
+				print 'Affected packages:-'
+				for pkg in value['affectedpackages']:
+					print pkg
+
 	def printResult(self,products=None,packages=None,scores=None):
-		nd=OrderedDict()
 		
 		cvelist=list()
 		prodlist=list()
 		pkglist=list()
+		scorelist=list()
 				
 		for key,val in self.resultdict.iteritems():
+			if self.resultdict[key]['mute'] == "on":
+				continue
+
+			scorelist.append(val['score'])
 			if not cvelist.__contains__(key):
 				cvelist.append(key)
 			for pdt in val['affectedproducts']:
@@ -105,18 +122,29 @@ class Result:
 				if not pkglist.__contains__(pkg):
 					pkglist.append(pkg)
 
+		#if packages != None:
+			#print "\nAffected packages\n"
+		for pkg in pkglist:
+			print pkg
+		
+		#if products != None:
+		#print "Affected Products\n"
+		#for pd in prodlist:
+		#	print pd
+		
+		with open ('listedscores','w') as outfile:
+			for score in scorelist:
+				outfile.write('%s\n'%score)
 
-		if products != None:
-			print "Affected Products\n"
-			for pd in prodlist:
-				print pd
-
-		if packages != None:
-			print "\nAffected packages\n"
+		with open ('listedpkgs','w') as outfile:
 			for pkg in pkglist:
-				print pkg
-
-		print "\nCVE Details\n"
+				outfile.write('%s\n'%pkg)
+		with open ('listedcves','w') as outfile:
+			for cve in cvelist:
+				outfile.write('%s\n'%cve)
+			
+		print "\nCVE Details"
+		print "-----------"
 		for cve in cvelist:
 			print "%s: %s"%(cve,self.resultdict[cve]['desc'])
 
@@ -126,10 +154,13 @@ class CVEDetails:
 		self.packages=list()
 		
 class CVECheck:
-	def __init__(self,vulnjson):
+	def __init__(self):
 		self.sources=dict()
+		self.resObj=Result()
+		self.fallback=dict()
 		self.sources['redhat']='https://access.redhat.com/labs/securitydataapi/cve.json'
-		self.vulnjson=vulnjson
+		self.fallback['redhat-cve.json']='redhat-cve.json.tmpl'
+		self.vulnstore='vulnstore.json'
 		self.vulnobj=OrderedDict()
 		self.cksumfile='sha256sums'
 
@@ -142,16 +173,44 @@ class CVECheck:
 		return refdict
 
 	def updatefromRedhat(self,url):
-			self.checkforChanges(url,'redhat-cve.json')
+			redhatjson='redhat-cve.json'
+			retval=self.checkforChanges(url,redhatjson)
 			#this is where the redhat obj gets initialized
-
+			#if retval == 0, there is no change. Simply read store. If store doesn't exist, initialize afresh.
+			if retval == 1 or retval == -1:
+				retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
+				if retval != 0: #we have to write out a brand new file
+					print 'Initializing brand-new store file'
+					rjobj=OrderedDict()	
+					retval,rjobj=self.readStore(redhatjson,rjobj)
+					if retval != 0:
+						sys.exit(-1)
+					for rj in rjobj:
+						try:
+							cveid=rj['CVE']
+							cvedesc=rj['resource_url']
+							cvescore=rj['cvss3_score']
+							affectedpackages=rj['affected_packages']
+							affectedproducts=list()
+						except:
+							cvescore=rj['cvss_score']
+						self.resObj.addResult(cveid, cvedesc, cvescore, affectedpackages, affectedproducts)
+					self.writeStore(self.vulnstore,self.resObj.resultdict)
+					return
+				#we are here, which means the vuln object was initialized successfully from the file
+				return	
+			else: # this is before the vuln object was initialized thhrough the file. No changes though in the defs.
+				retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
+				return
+	
 	def checkforChanges(self,url,fname):
 		try:
-			vulnlist = urllib.URLopener()
-			vulnlist.retrieve(url,fname)
+			urlobj = urllib.URLopener()
+			urlobj.retrieve(url,fname)
 		except:
-			print 'unable to fetch file %s'%(fname)
-		
+			#print 'unable to fetch file %s.'%(fname)
+			return(-1)
+				
 		cksums=OrderedDict()
 		try:
 			with open(self.cksumfile,'r') as infile:
@@ -167,26 +226,33 @@ class CVECheck:
 				changed=1
 			if changed == 0:
 				print "No changes found in vulnerability store file %s"%(fname)
+				return(0)
 			else:
 				with open('sha256sums','w') as outfile:
 					for file in cksums:
 						outfile.write("%s %s\n"%(cksums[file],file))
+				return(1)
 		except:
 			print "Could not look up old checksums"
+			return(-1)
 
 	def updateStore(self):
 		for key, val in self.sources.iteritems():
 			if key == 'redhat':
 				self.updatefromRedhat(val)
-				#self.readXdxf()
 
-	def readStore(self):
+	def readStore(self,jsonfile,jsonobj):
 		try:
-			with codecs.open(self.vulnjson,'r','utf-8') as infile:
-				self.vulnobj=json.load(infile,object_pairs_hook=OrderedDict)
+			with codecs.open(jsonfile,'r','utf-8') as infile:
+				jsonobj=json.load(infile,object_pairs_hook=OrderedDict)
 		except:
-			print 'json file %s not found. Initializing from scratch'%(self.vulnjson)
-			self.readXdxf(dontread=1)
+			return(-1,jsonobj)
+			#self.readXdxf(dontread=1)
+		return(0,jsonobj)
+
+	def writeStore(self,jsonfile, jsonobj):
+		with codecs.open(jsonfile,'w','utf-8') as outfile:
+			json.dump(jsonobj,outfile)
 	
 	def listWordstartswith(self,tolist):
 		self.readStore(self.corpusjson)
@@ -338,14 +404,6 @@ class CVECheck:
 		with codecs.open(self.lpjson,'w','utf-8') as outfile:
 			json.dump(self.lpdict,outfile)
 			
-		
-	def writeStore(self,jsonfile):
-		with codecs.open(jsonfile,'w','utf-8') as outfile:
-			if jsonfile == "sve-eng.json":
-				json.dump(self.mydict,outfile)
-			else:
-				json.dump(self.engdict,outfile)
-				
 	def writeOuttxtfile(self):
 		self.readStore(self.corpusjson)
 		with codecs.open(self.txtout,'w','utf-8') as outfile:
@@ -392,37 +450,34 @@ class CVECheck:
 
 aparser=argparse.ArgumentParser(description='A tool to fetch and update a local vulnerability store against select sources of vulnerability information. It can be queried for specific CVEs, by severity or product name, or a combination. Entries can be marked as "seen" to allow one to "mute" alerts for onal words into the corpus.')
 aparser.add_argument("-c", "--cve", type=str, default='none',help='output information about specified CVE or comma-separated list of CVEs. Cannot be combined with any other filter/option.')
-aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the store. Cannot be combined with any other option/filter.') #update store
+#aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the store. Cannot be combined with any other option/filter.') #update store
 aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical".') #lookup by severity level
 aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product
 aparser.add_argument("-pkg", "--package", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product
-aparser.add_argument("-m", "--mark", type=str, default='none',help='mark resulting matches as "seen" or "unseen". Must be used in combination with one or more filters.') #mark results as seen or unseen
+aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one or more filters, and must include -pkg') #mark results as seen or unseen
+aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. Do not use with any other flag.') #mark results as seen or unseen
 
 args=aparser.parse_args()
 cve=args.cve
-update=args.update
+#update=args.update
 severity=args.severity
 product=args.product
 package=args.package
-mark=args.mark
-
+mute=args.mute
+disp_mute=args.disp_mute
 argsdict=dict()
 argsdict['scores']=None
 argsdict['products']=None
 argsdict['packages']=None
 
-cvcobj=CVECheck('vuln.json')
 resobj=Result()
+cvcobj=CVECheck()
 resobj.addResult('101','101 dalmations is the description',10.0,['dalmations'],['Dalmations 101'])
 resobj.addResult('102','James Cameron is the description',4.0,['titanic'],['Titanic the movie'])
 resobj.addResult('102','James Cameron is the description',4.0,['Apache'],['Apache Tomcat'])
 
 if cve != 'none':
 	print 'you have entered a CVE lookup request. Sit tight'
-	sys.exit(0)
-
-if update != 'none':
-	cvcobj.updateStore()
 	sys.exit(0)
 
 if severity != 'none':
@@ -441,7 +496,18 @@ if package != 'none':
 	packages=package.split(',')
 	argsdict['packages']=packages
 
+if mute != 'none':
+	if mute != 'on' and mute != 'off':
+		print 'Value for mute flag can only be "off" or "on"'
+		sys.exit(-1)
+	if package == 'none':
+		print 'Mute flag requires the use of the -pkg option'
+		sys.exit(-1)
 
+cvcobj.updateStore()
+if disp_mute != 'none':
+	cvcobj.resObj.printMuted()
+	sys.exit(0)
 
-resobj.trimResult(scores=argsdict['scores'],products=argsdict['products'],packages=argsdict['packages'])
-resobj.printResult(scores=argsdict['scores'],products=argsdict['products'],packages=argsdict['packages'])
+cvcobj.resObj.trimResult(scores=argsdict['scores'],products=argsdict['products'],packages=argsdict['packages'],mute=mute)
+cvcobj.resObj.printResult(scores=argsdict['scores'],products=argsdict['products'],packages=argsdict['packages'])

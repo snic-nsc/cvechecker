@@ -1,5 +1,5 @@
-usage: cvechecker.py [-h] [-c CVE] [-u [UPDATE]] [-s SEVERITY] [-p PRODUCT]
-                     [-pkg PACKAGE] [-m MARK]
+usage: cvechecker.py [-h] [-c CVE] [-s SEVERITY] [-p PRODUCT] [-pkg PACKAGE]
+                     [-m MUTE] [-d [DISP_MUTE]]
 
 A tool to fetch and update a local vulnerability store against select sources
 of vulnerability information. It can be queried for specific CVEs, by severity
@@ -11,9 +11,6 @@ optional arguments:
   -c CVE, --cve CVE     output information about specified CVE or comma-
                         separated list of CVEs. Cannot be combined with any
                         other filter/option.
-  -u [UPDATE], --update [UPDATE]
-                        update the store. Cannot be combined with any other
-                        option/filter.
   -s SEVERITY, --severity SEVERITY
                         filter results by severity level. Valid levels are
                         "None", "Low", "Medium", "High", and "Critical".
@@ -23,5 +20,8 @@ optional arguments:
   -pkg PACKAGE, --package PACKAGE
                         filter results by specified product name or comma-
                         separated list of products.
-  -m MARK, --mark MARK  mark resulting matches as "seen" or "unseen". Must be
-                        used in combination with one or more filters.
+  -m MUTE, --mute MUTE  set mute on or off, to silence/unsilence reporting.
+                        Must be used in combination with one or more filters,
+                        and must include -pkg
+  -d [DISP_MUTE], --disp-mute [DISP_MUTE]
+                        display muted entries. Do not use with any other flag.
