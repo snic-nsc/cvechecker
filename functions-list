@@ -24,4 +24,5 @@ optional arguments:
                         Must be used in combination with one or more filters,
                         and must include -pkg
   -d [DISP_MUTE], --disp-mute [DISP_MUTE]
-                        display muted entries. Do not use with any other flag.
+                        display muted entries. Any other options are ignored,
+                        when combined with this option.
