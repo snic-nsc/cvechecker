@@ -184,6 +184,7 @@ class CVECheck:
 		self.resObj=Result()
 		self.fallback=dict()
 		self.sources['redhat']='https://access.redhat.com/labs/securitydataapi/cve.json'
+		self.sources['nvd']='thisdoesntreallymatter'
 		self.fallback['redhat-cve.json']='redhat-cve.json.tmpl'
 		self.vulnstore='vulnstore.json'
 		self.vulnobj=OrderedDict()
@@ -202,10 +203,33 @@ class CVECheck:
 		refdict['definitions']=list()
 		return refdict
 
+	def updatefromNVD(self):
+		nvdchannels=list()
+		nvdyrjson='nvd-curyear.json'
+		nvdmodifjson='nvd-modif.json'
+		urlobj = urllib.URLopener()
+		try:
+			with open('nvdchannels.conf','r') as inp:
+				lines=inp.readlines()
+			for line in lines:
+				if line.startswith('#'):
+					continue
+				id=line.split('|')[0]
+				id+='.json'
+				metaid=id+'.meta'
+				url=line.split('|')[1]
+				metaurl=line.split('|')[2].split('\n')[0]
+				nvdchannels.append((id,url,metaid,metaurl))
+			for channel in nvdchannels:
+				urlobj.retrieve(channel[1],channel[0])
+				urlobj.retrieve(channel[3],channel[2])
+		except:
+			print "Could not initialize NVD files"
+			raise
+	
 	def updatefromRedhat(self,url):
 		redhatjson='redhat-cve.json'
 		try:
-
 			with open('advancedcveinfolist','r') as infile:
 				lines=infile.readlines()
 			pkgline=''
@@ -257,13 +281,14 @@ class CVECheck:
 					try:
 						inputs['cveid']=rj['CVE']
 						inputs['cveurl']=rj['resource_url']
-						inputs['cvescore']=rj['cvss3_score']
 						inputs['affectedpackages']=rj['affected_packages']
-						inputs['description']=None
-						inputs['mitigation']=None
-						inputs['details']=None
+						inputs['cvescore']=rj['cvss3_score']
 					except:
 						moveon=1
+
+					inputs['description']=None
+					inputs['mitigation']=None
+					inputs['details']=None
 
 					if inputs['cvescore'] == None:
 						inputs['cvescore']='Missing'
@@ -272,10 +297,18 @@ class CVECheck:
 						cveobj=json.load(urllib2.urlopen(inputs['cveurl']))
 					except:
 						print 'Failure to fetch CVE details. All data fields may not be available'
+
+					#RedHat CVE files are very inconsistent with fields. 
+					try:
+						inputs['details']=cveobj['details']
+					except:
+						donothing=1
 					try:
 						inputs['description']=cveobj['bugzilla']['description']
+					except:
+						donothing=1
+					try:
 						intputs['mitigation']=cveobj['mitigation']
-						inputs['details']=cveobj['details']
 					except:
 						donothing=1
 
@@ -343,6 +376,8 @@ class CVECheck:
 		for key, val in self.sources.iteritems():
 			if key == 'redhat':
 				self.updatefromRedhat(val)
+			if key == 'nvd':
+				self.updatefromNVD()
 
 	def readStore(self,jsonfile,jsonobj):
 		try:

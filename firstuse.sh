@@ -1,5 +1,7 @@
 #!/bin/bash
 
-cp sha256sums.tmpl sha256sums
-cp redhat-cve.json.tmpl redhat-cve.json
+for i in `ls *.tmpl`; do 
+after=`echo $i|sed 's/\(.*\).tmpl/\1/'`; 
+cp $i $after;
+done
 rm -f vulnstore.json
