@@ -16,6 +16,11 @@ class Result:
 	
 	def addResult(self, cveid, cveurl, cvescore, affectedpackages, affectedproducts,description,details, mitigation):
 		if self.resultdict.__contains__(cveid):
+
+			self.resultdict[cveid]['description']=description
+			self.resultdict[cveid]['details']=details
+			self.resultdict[cveid]['mitigation']=mitigation
+
 			for pkg in affectedpackages:
 				if not self.resultdict[cveid]['affectedpackages'].__contains__(pkg):
 					self.resultdict[cveid]['affectedpackages'].append(pkg)
@@ -254,6 +259,9 @@ class CVECheck:
 						inputs['cveurl']=rj['resource_url']
 						inputs['cvescore']=rj['cvss3_score']
 						inputs['affectedpackages']=rj['affected_packages']
+						inputs['description']=None
+						inputs['mitigation']=None
+						inputs['details']=None
 					except:
 						moveon=1
 
@@ -270,6 +278,7 @@ class CVECheck:
 						inputs['details']=cveobj['details']
 					except:
 						donothing=1
+
 					apdict=OrderedDict()
 					for pstate in cveobj['affected_release']:
 						if not type(pstate) == dict:
@@ -282,8 +291,6 @@ class CVECheck:
 							print 'didnt find product %s'%pstate['product_name']
 							apdict[pstate['product_name']]=pstate['package']
 
-						if not inputs['affectedpackages'].__contains__(pstate['package']):
-							inputs['affectedpackages'].append(pstate['package'])
 					inputs['affectedproducts']=apdict	
 
 					self.resObj.addResult(**inputs)
@@ -350,72 +357,6 @@ class CVECheck:
 		with codecs.open(jsonfile,'w','utf-8') as outfile:
 			json.dump(jsonobj,outfile)
 	
-	def listWordstartswith(self,tolist):
-		self.readStore(self.corpusjson)
-		found=0
-		for word,refobj in self.mydict.iteritems():
-			if tolist.startswith(word):
-				found=1
-				print "Possible related word %s exists in the corpus"%(word)
-				print 'input is %s, word in corpus is %s'%(tolist,word)
-				ctr=1
-				for meaning in refobj['definitions']:
-					print "%d. %s"%(ctr,meaning)
-					ctr+=1
-		if found == 0:
-			print "Word %s does not exist in the corpus"%(tolist)
-
-	def readXdxf(self, dontread=0):
-		if dontread == 0:
-			self.readStore(self.corpusjson)
-			self.readStore(self.engjson)
-		try:
-			tree=ET.parse(self.svexdxfinp)
-			engtree=ET.parse(self.engxdxfinp)
-			
-		except:
-			print "Error parsing xdxf input file. Aborting."
-			sys.exit(-1)
-
-		self.root=tree.getroot()
-		self.engroot=engtree.getroot()
-
-		for node in self.root[1]:
-			if not self.mydict.__contains__(node[0].text):
-				print 'new word found: %s'%(node[0].text)
-				refdict=OrderedDict()
-				self.mydict[node[0].text]=self.setupRef(refdict)
-				self.mydict[node[0].text]['source']='lexikon'
-			else:
-				self.mydict[node[0].text]['source']='lexikon'
-			for ele in node[1]:
-				if ele.tag == 'dtrn':
-					if not self.mydict[node[0].text]['definitions'].__contains__(ele.text):
-						print 'new definition %s found for word %s'%(ele.text,node[0].text)
-						self.mydict[node[0].text]['definitions'].append(ele.text)
-
-		for node in self.engroot[1]:
-			if not self.engdict.__contains__(node[0].text):
-				print 'new word found: %s'%(node[0].text)
-				refdict=OrderedDict()
-				self.engdict[node[0].text]=self.setupRef(refdict)
-				self.engdict[node[0].text]['source']='lexikon'
-			else:
-				self.engdict[node[0].text]['source']='lexikon'
-			
-			for ele in node[1]:
-				if ele.tag == 'dtrn':
-					if not self.engdict[node[0].text]['definitions'].__contains__(ele.text):
-						print 'new definition %s found for word %s'%(ele.text,node[0].text)
-						self.engdict[node[0].text]['definitions'].append(ele.text)
-		try:
-			self.writeStore(self.corpusjson)
-			self.writeStore(self.engjson)
-			self.writeOuttxtfile()
-			print 'Successfully wrote out de-duped word corpus and xdxf.txt file'
-		except:
-			print 'Could not write out word corpus or/and xdxf.txt file'
-
 aparser=argparse.ArgumentParser(description='A tool to fetch and update a local vulnerability store against select sources of vulnerability information. It can be queried for specific CVEs, by severity or product name, or a combination. Entries can be marked as "seen" to allow one to "mute" alerts for onal words into the corpus.')
 aparser.add_argument("-c", "--cve", type=str, default='none',help='output information about specified CVE or comma-separated list of CVEs. Cannot be combined with any other filter/option.')
 aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical".') #lookup by severity level
