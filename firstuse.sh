@@ -4,4 +4,4 @@ for i in `ls *.tmpl`; do
 after=`echo $i|sed 's/\(.*\).tmpl/\1/'`; 
 cp $i $after;
 done
-rm -f vulnstore.json
+#rm -f vulnstore.json

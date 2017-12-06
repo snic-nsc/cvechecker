@@ -219,40 +219,72 @@ class CVECheck:
 				url=line.split('|')[1]
 				metaurl=line.split('|')[2].split('\n')[0]
 				nvdchannels.append((id,url,metaid,metaurl))
+		except:
+			print "Catastrophic error with nvdchannels.conf. Check contents for syntax. Refer to nvdchannels.conf.tmpl for help"
+			sys.exit(-1)
+		modif=nvdchannels[0][0]
+		yearly=nvdchannels[1][0']
+		modifmeta=modif+'.meta'
+		yearlymeta=yearly+'.meta'
+		cksums=dict()
+		try:
 			for channel in nvdchannels:
 				urlobj.retrieve(channel[3],channel[2])
+
+			for f in modifmeta,yearlymeta:
+				with open(f,'r') as inp:
+					lines=inp.readlines()
+				cksum=''
+				for line in lines:
+					if line.startswith('sha256'):
+						cksum=(line.split(':')[1].split('\n')[0]).lower()
+						break
+				if cksum == '':
+					raise
+				cksums[f]=cksum
+			#lets compare checksums
+			for f in modif,yearly:
+				sha256sum=self.computeChecksum(f)
+				if sha256sum != cksums[f]:
+					#update file available. Fetch
+					urlobj.retrieve(channel[3],channel[2])
+				
+			
 		except:
 			print "Could not fetch NVD metadata files"
-	
-		try:
-			zip1=(nvdchannels[0]['id'])+'.zip'
-			zip2=(nvdchannels[1]['id'])+'.zip'
+			#no metadata files. read the local nvd files
+			retval=self.checkforChanges(fname=modif)
+			retval=self.checkforChanges(fname=yearly)
 
-			with gzip.open(zip1, 'rb') as f:
-				f1_content = f.read()
+			try:
+				zip1=(nvdchannels[0]['id'])+'.zip'
+				zip2=(nvdchannels[1]['id'])+'.zip'
 
-			with gzip.open(zip2, 'rb') as f:
-				f2_content = f.read()
+				with gzip.open(zip1, 'rb') as f:
+					f1_content = f.read()
 
-			with open(nvdchannels[0]['id'],'w') as outp:
-				outp.write(f1_content)
+				with gzip.open(zip2, 'rb') as f:
+					f2_content = f.read()
 
-			with open(nvdchannels[1]['id'],'w') as outp:
-				outp.write(f2_content)
+				with open(nvdchannels[0]['id'],'w') as outp:
+					outp.write(f1_content)
+
+				with open(nvdchannels[1]['id'],'w') as outp:
+					outp.write(f2_content)
 			
-			obj1=json.loads(f1_content)
-			obj2=json.loads(f2_content)
-			self.writeStore(nvdchannels[0]['id'],obj1)
-			self.writeStore(nvdchannels[1]['id'],obj1)
-				
+				obj1=json.loads(f1_content)
+				obj2=json.loads(f2_content)
+				self.writeStore(nvdchannels[0]['id'],obj1)
+				self.writeStore(nvdchannels[1]['id'],obj1)
+					
 
-		except:
-			print 'Unable to read local nvd files. Execute firstuse.sh. Warning: It'll wipe out your local vulnerability store'
-			sys.exit(-1)
+			except:
+				print "Unable to read local nvd files. Execute firstuse.sh. Warning: It'll wipe out your local vulnerability store"
+				sys.exit(-1)
 
 		#insert into sha256sums if lines not present
-		ret=self.checkforChanges(fname=nvdchannels[0]['id']
-		ret=self.checkforChanges(fname=nvdchannels[1]['id']
+		ret=self.checkforChanges(fname=nvdchannels[0]['id'])
+		ret=self.checkforChanges(fname=nvdchannels[1]['id'])
 
 	def updatefromRedhat(self,url):
 		redhatjson='redhat-cve.json'
@@ -368,6 +400,7 @@ class CVECheck:
 	def computeChecksum(self,fname):
 		with open(fname,'rb') as infile:
 			sha256sum=sha256(infile.read()).hexdigest()
+		return(sha256sum)
 
 	def checkforChanges(self,url=None,fname=None):
 		if url != None:
@@ -385,10 +418,10 @@ class CVECheck:
 			for line in lines:
 				cksums[line.split(' ')[1].split('\n')[0]]=line.split(' ')[0]
 			changed=0
-			with open(fname,'rb') as infile:
-					sha256sum=sha256(infile.read()).hexdigest()
+			sha256sum=self.computeChecksum(fname)
+
 			if cksums[fname] != sha256sum:
-				print "Vulnerability store file %s has been updated."%(fname)
+				print "checksum list has been updated for file %s."%(fname)
 				cksums[fname]=sha256sum
 				changed=1
 			if changed == 0:
@@ -411,7 +444,8 @@ class CVECheck:
 			if key == 'redhat':
 				self.updatefromRedhat(val)
 			if key == 'nvd':
-				self.updatefromNVD()
+				#self.updatefromNVD()
+				pass
 
 	def readStore(self,jsonfile,jsonobj):
 		try:
@@ -419,7 +453,6 @@ class CVECheck:
 				jsonobj=json.load(infile,object_pairs_hook=OrderedDict)
 		except:
 			return(-1,jsonobj)
-			#self.readXdxf(dontread=1)
 		return(0,jsonobj)
 
 	def writeStore(self,jsonfile, jsonobj):
