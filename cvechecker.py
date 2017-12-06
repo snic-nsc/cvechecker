@@ -7,6 +7,7 @@ from hashlib import sha256
 import simplejson as json
 from numbers import Number
 import urllib,urllib2
+import gzip
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
@@ -205,8 +206,6 @@ class CVECheck:
 
 	def updatefromNVD(self):
 		nvdchannels=list()
-		nvdyrjson='nvd-curyear.json'
-		nvdmodifjson='nvd-modif.json'
 		urlobj = urllib.URLopener()
 		try:
 			with open('nvdchannels.conf','r') as inp:
@@ -221,12 +220,40 @@ class CVECheck:
 				metaurl=line.split('|')[2].split('\n')[0]
 				nvdchannels.append((id,url,metaid,metaurl))
 			for channel in nvdchannels:
-				urlobj.retrieve(channel[1],channel[0])
 				urlobj.retrieve(channel[3],channel[2])
 		except:
-			print "Could not initialize NVD files"
-			raise
+			print "Could not fetch NVD metadata files"
 	
+		try:
+			zip1=(nvdchannels[0]['id'])+'.zip'
+			zip2=(nvdchannels[1]['id'])+'.zip'
+
+			with gzip.open(zip1, 'rb') as f:
+				f1_content = f.read()
+
+			with gzip.open(zip2, 'rb') as f:
+				f2_content = f.read()
+
+			with open(nvdchannels[0]['id'],'w') as outp:
+				outp.write(f1_content)
+
+			with open(nvdchannels[1]['id'],'w') as outp:
+				outp.write(f2_content)
+			
+			obj1=json.loads(f1_content)
+			obj2=json.loads(f2_content)
+			self.writeStore(nvdchannels[0]['id'],obj1)
+			self.writeStore(nvdchannels[1]['id'],obj1)
+				
+
+		except:
+			print 'Unable to read local nvd files. Execute firstuse.sh. Warning: It'll wipe out your local vulnerability store'
+			sys.exit(-1)
+
+		#insert into sha256sums if lines not present
+		ret=self.checkforChanges(fname=nvdchannels[0]['id']
+		ret=self.checkforChanges(fname=nvdchannels[1]['id']
+
 	def updatefromRedhat(self,url):
 		redhatjson='redhat-cve.json'
 		try:
@@ -338,6 +365,10 @@ class CVECheck:
 			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
 			return
 	
+	def computeChecksum(self,fname):
+		with open(fname,'rb') as infile:
+			sha256sum=sha256(infile.read()).hexdigest()
+
 	def checkforChanges(self,url=None,fname=None):
 		if url != None:
 
@@ -345,7 +376,6 @@ class CVECheck:
 				urlobj = urllib.URLopener()
 				urlobj.retrieve(url,fname)
 			except:
-				#print 'unable to fetch file %s.'%(fname)
 				return(-1)
 
 		cksums=OrderedDict()
@@ -369,8 +399,12 @@ class CVECheck:
 						outfile.write("%s %s\n"%(cksums[file],file))
 				return(1)
 		except:
-			print "Could not look up old checksums"
-			return(-1)
+			print "Could not look up old checksum. Will add"
+			cksums[fname]=sha256sum
+			with open('sha256sums','w') as outfile:
+				for file in cksums:
+					outfile.write("%s %s\n"%(cksums[file],file))
+				return(0)
 
 	def updateStore(self):
 		for key, val in self.sources.iteritems():
