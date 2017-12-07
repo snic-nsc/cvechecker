@@ -6,10 +6,12 @@ from collections import OrderedDict
 from hashlib import sha256
 import simplejson as json
 from numbers import Number
+import socket
 import urllib,urllib2
 import gzip
 reload(sys)
 sys.setdefaultencoding('utf-8')
+socket.setdefaulttimeout(30)
 
 class Result:
 	def __init__(self):
@@ -223,9 +225,12 @@ class CVECheck:
 			print "Catastrophic error with nvdchannels.conf. Check contents for syntax. Refer to nvdchannels.conf.tmpl for help"
 			sys.exit(-1)
 		modif=nvdchannels[0][0]
-		yearly=nvdchannels[1][0']
+		yearly=nvdchannels[1][0]
 		modifmeta=modif+'.meta'
 		yearlymeta=yearly+'.meta'
+		fnamefrommeta=dict()
+		fnamefrommeta[yearlymeta]=yearly
+		fnamefrommeta[modifmeta]=modif
 		cksums=dict()
 		try:
 			for channel in nvdchannels:
@@ -237,56 +242,47 @@ class CVECheck:
 				cksum=''
 				for line in lines:
 					if line.startswith('sha256'):
-						cksum=(line.split(':')[1].split('\n')[0]).lower()
+						cksum=(line.split(':')[1].split('\r')[0]).lower()
 						break
 				if cksum == '':
 					raise
-				cksums[f]=cksum
+				cksums[fnamefrommeta[f]]=cksum
+			print cksums
 			#lets compare checksums
-			for f in modif,yearly:
-				sha256sum=self.computeChecksum(f)
-				if sha256sum != cksums[f]:
-					#update file available. Fetch
-					urlobj.retrieve(channel[3],channel[2])
-				
-			
-		except:
-			print "Could not fetch NVD metadata files"
-			#no metadata files. read the local nvd files
-			retval=self.checkforChanges(fname=modif)
-			retval=self.checkforChanges(fname=yearly)
-
-			try:
-				zip1=(nvdchannels[0]['id'])+'.zip'
-				zip2=(nvdchannels[1]['id'])+'.zip'
-
-				with gzip.open(zip1, 'rb') as f:
-					f1_content = f.read()
-
-				with gzip.open(zip2, 'rb') as f:
-					f2_content = f.read()
-
-				with open(nvdchannels[0]['id'],'w') as outp:
-					outp.write(f1_content)
-
-				with open(nvdchannels[1]['id'],'w') as outp:
-					outp.write(f2_content)
-			
-				obj1=json.loads(f1_content)
-				obj2=json.loads(f2_content)
-				self.writeStore(nvdchannels[0]['id'],obj1)
-				self.writeStore(nvdchannels[1]['id'],obj1)
-					
-
-			except:
-				print "Unable to read local nvd files. Execute firstuse.sh. Warning: It'll wipe out your local vulnerability store"
+			for channel in nvdchannels:
+				retval,sha256sum=self.computeChecksum(channel[0])
+				print sha256sum
+				if sha256sum != cksums[channel[0]]:
+					print "Update available for %s"%channel[0]
+					zip=channel[0]+'.gz'
+					urlobj.retrieve(channel[1],zip)
+					with gzip.GzipFile(zip, 'rb') as f:
+						fcontent = f.read()
+					with open(channel[0],'wb') as out:
+						out.write(fcontent)
+			#insert into sha256sums if lines not present
+			retval1=self.checkforChanges(fname=modif)
+			retval2=self.checkforChanges(fname=yearly)
+			if retval1 == -1 or retval2 == -1:
+				print "Catastrophic failure. FS error?"
 				sys.exit(-1)
-
-		#insert into sha256sums if lines not present
-		ret=self.checkforChanges(fname=nvdchannels[0]['id'])
-		ret=self.checkforChanges(fname=nvdchannels[1]['id'])
+		except:
+			print "Could not fetch NVD metadata files; check internet connectivity. Your CVE store could not be updated."
+			#no metadata files. read the local nvd files
+			try:
+				retval1=self.checkforChanges(fname=modif)
+				retval2=self.checkforChanges(fname=yearly)
+				if retval1 == -1 or retval2 == -1:
+					raise
+			except:
+				print "Unable to read local nvd files. Execute initnvd.sh"
+				sys.exit(-1)
+			#this is the unupdated case. Local nvd files are available for reading
+		print 'common case'
+		#this is the updated case. Local nvd files are available for reading
 
 	def updatefromRedhat(self,url):
+		return
 		redhatjson='redhat-cve.json'
 		try:
 			with open('advancedcveinfolist','r') as infile:
@@ -335,7 +331,6 @@ class CVECheck:
 				inputs['description']=None	
 				inputs['details']=None	
 				inputs['mitigation']=None
-				cveobjfields=list()
 				for rj in rjobj:
 					try:
 						inputs['cveid']=rj['CVE']
@@ -386,9 +381,6 @@ class CVECheck:
 					inputs['affectedproducts']=apdict	
 
 					self.resObj.addResult(**inputs)
-				with open('cveobjfields','w') as outfile:
-					for field in cveobjfields:
-						outfile.write(field)
 				self.writeStore(self.vulnstore,self.resObj.resultdict)
 				return
 			#we are here, which means the vuln object was initialized successfully from the file
@@ -398,9 +390,14 @@ class CVECheck:
 			return
 	
 	def computeChecksum(self,fname):
-		with open(fname,'rb') as infile:
-			sha256sum=sha256(infile.read()).hexdigest()
-		return(sha256sum)
+		try:
+			sha256sum=''
+			with open(fname,'rb') as infile:
+				sha256sum=sha256(infile.read()).hexdigest()
+			return(0,sha256sum)
+		except:
+			return(-1,sha256sum)
+			
 
 	def checkforChanges(self,url=None,fname=None):
 		if url != None:
@@ -418,7 +415,9 @@ class CVECheck:
 			for line in lines:
 				cksums[line.split(' ')[1].split('\n')[0]]=line.split(' ')[0]
 			changed=0
-			sha256sum=self.computeChecksum(fname)
+			retval,sha256sum=self.computeChecksum(fname)
+			if retval == -1:
+				return(-1)	
 
 			if cksums[fname] != sha256sum:
 				print "checksum list has been updated for file %s."%(fname)
@@ -444,8 +443,8 @@ class CVECheck:
 			if key == 'redhat':
 				self.updatefromRedhat(val)
 			if key == 'nvd':
-				#self.updatefromNVD()
-				pass
+				self.updatefromNVD()
+				#pass
 
 	def readStore(self,jsonfile,jsonobj):
 		try:
