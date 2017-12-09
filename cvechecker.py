@@ -193,6 +193,7 @@ class CVECheck:
 		self.vulnstore='vulnstore.json'
 		self.vulnobj=OrderedDict()
 		self.cksumfile='sha256sums'
+		self.noconnectivity=0
 		self.rhproducts=dict()
 		self.rhproducts['Red Hat Enterprise Linux 5']='RHEL5' 
 		self.rhproducts['Red Hat Enterprise Linux 6']='RHEL6' 
@@ -265,6 +266,7 @@ class CVECheck:
 					sys.exit(-1)
 		except:
 			print "Could not fetch NVD metadata files; check internet connectivity. Your CVE store could not be updated."
+			self.noconnectivity=1
 			#no metadata files. read the local nvd files
 			try:
 				for channel in channelinfo:
@@ -302,6 +304,8 @@ class CVECheck:
 		for pkg in pkglist:
 			url=self.sources['redhat']
 			url+='?package=%s'%pkg
+			if self.noconnectivity == 1:
+				break
 			try:
 				cveintobj=json.load(urllib2.urlopen(url),object_pairs_hook=OrderedDict)
 				for entry in cveintobj:
@@ -309,13 +313,20 @@ class CVECheck:
 				self.writeStore(redhatjson,aggregobj)
 			except:
 				print 'cannot update CVEs for redhat packages; check internet connectivity.'
+				self.noconnectivity=1
 		return(redhatjson)
 
 	def readRedhatfiles(self,redhatjson):
 		retval=self.checkforChanges(fname=redhatjson)
-		#this is where the redhat obj gets initialized
-		#if retval == 0, there is no change. Simply read store. If store doesn't exist, initialize afresh.
-		if retval == 1 or retval == -1:
+		if retval == 0: 
+			initstore=0
+			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
+			if retval == -1:
+				initstore=1
+		else:
+			initstore=1
+
+		if initstore == 1:
 			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
 			if retval != 0: #we have to write out a brand new file
 				print 'Initializing brand-new store file'
@@ -384,10 +395,9 @@ class CVECheck:
 					self.resObj.addResult(**inputs)
 				self.writeStore(self.vulnstore,self.resObj.resultdict)
 				return
-			#we are here, which means the vuln object was initialized successfully from the file
-			return	
-		else: # this is before the vuln object was initialized thhrough the file. No changes though in the defs.
+		else: # this is before the vuln object was initialized through the file. No changes though in the defs.
 			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
+			if retval == -1:
 			return
 	
 	def computeChecksum(self,fname):
