@@ -327,37 +327,34 @@ class CVECheck:
 			initstore=1
 
 		if initstore == 1:
-			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
-			if retval != 0: #we have to write out a brand new file
-				print 'Initializing brand-new store file'
-				rjobj=OrderedDict()	
-				retval,rjobj=self.readStore(redhatjson,rjobj)
-				if retval != 0:
-					sys.exit(-1)
-				inputs=OrderedDict()
-				inputs['cveid']=None	
-				inputs['cveurl']=None	
-				inputs['cvescore']=None	
-				inputs['affectedpackages']=None	
-				inputs['affectedproducts']=None
-				inputs['description']=None	
-				inputs['details']=None	
+			rjobj=OrderedDict()	
+			retval,rjobj=self.readStore(redhatjson,rjobj)
+			if retval != 0:
+				sys.exit(-1)
+			inputs=OrderedDict()
+			inputs['cveid']=None	
+			inputs['cveurl']=None	
+			inputs['cvescore']=None	
+			inputs['affectedpackages']=list()	
+			inputs['description']=None	
+			inputs['details']=None	
+			inputs['mitigation']=None
+			for rj in rjobj:
+				try:
+					inputs['cveid']=rj['CVE']
+					inputs['cveurl']=rj['resource_url']
+					inputs['affectedpackages']=rj['affected_packages']
+					inputs['cvescore']=rj['cvss3_score']
+				except:
+					moveon=1
+
+				inputs['description']=None
 				inputs['mitigation']=None
-				for rj in rjobj:
-					try:
-						inputs['cveid']=rj['CVE']
-						inputs['cveurl']=rj['resource_url']
-						inputs['affectedpackages']=rj['affected_packages']
-						inputs['cvescore']=rj['cvss3_score']
-					except:
-						moveon=1
+				inputs['details']=None
 
-					inputs['description']=None
-					inputs['mitigation']=None
-					inputs['details']=None
-
-					if inputs['cvescore'] == None:
-						inputs['cvescore']='Missing'
+				if inputs['cvescore'] == None:
+					inputs['cvescore']='Missing'
+				if self.noconnectivity == 0:
 					try:
 						print 'pulling down %s'%(inputs['cveurl'])
 						cveobj=json.load(urllib2.urlopen(inputs['cveurl']))
@@ -392,12 +389,10 @@ class CVECheck:
 
 					inputs['affectedproducts']=apdict	
 
-					self.resObj.addResult(**inputs)
-				self.writeStore(self.vulnstore,self.resObj.resultdict)
-				return
-		else: # this is before the vuln object was initialized through the file. No changes though in the defs.
-			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
-			if retval == -1:
+				self.resObj.addResult(**inputs)
+			self.writeStore(self.vulnstore,self.resObj.resultdict)
+			return
+		else: # nothing to do here. resultdict has been initialized from vuln object directly, and there are no more changes.
 			return
 	
 	def computeChecksum(self,fname):
