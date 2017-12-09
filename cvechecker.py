@@ -279,7 +279,6 @@ class CVECheck:
 		#this is the updated case. Local nvd files are available for reading
 
 	def updatefromRedhat(self,url):
-		return
 		redhatjson='redhat-cve.json'
 		try:
 			with open('advancedcveinfolist','r') as infile:
@@ -303,11 +302,14 @@ class CVECheck:
 		for pkg in pkglist:
 			url=self.sources['redhat']
 			url+='?package=%s'%pkg
-			cveintobj=json.load(urllib2.urlopen(url),object_pairs_hook=OrderedDict)
-			for entry in cveintobj:
-				aggregobj.append(entry)
+			try:
+				cveintobj=json.load(urllib2.urlopen(url),object_pairs_hook=OrderedDict)
+				for entry in cveintobj:
+					aggregobj.append(entry)
+				self.writeStore(redhatjson,aggregobj)
+			except:
+				print 'cannot update CVEs for redhat packages; check internet connectivity.'
 
-		self.writeStore(redhatjson,aggregobj)
 		retval=self.checkforChanges(fname=redhatjson)
 		#this is where the redhat obj gets initialized
 		#if retval == 0, there is no change. Simply read store. If store doesn't exist, initialize afresh.
@@ -445,7 +447,7 @@ class CVECheck:
 	def readStore(self,jsonfile,jsonobj):
 		try:
 			with codecs.open(jsonfile,'r','utf-8') as infile:
-				jsonobj=json.load(infile,object_pairs_hook=OrderedDict)
+				jsonobj=json.load(infile)
 		except:
 			return(-1,jsonobj)
 		return(0,jsonobj)
