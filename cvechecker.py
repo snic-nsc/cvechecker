@@ -8,7 +8,8 @@ import simplejson as json
 from numbers import Number
 import socket
 import urllib,urllib2
-import gzip
+import gzip,os
+
 reload(sys)
 sys.setdefaultencoding('utf-8')
 socket.setdefaulttimeout(30)
@@ -207,37 +208,35 @@ class CVECheck:
 		return refdict
 
 	def updatefromNVD(self):
-		nvdchannels=list()
 		urlobj = urllib.URLopener()
+		channelinfo=dict()
 		try:
 			with open('nvdchannels.conf','r') as inp:
 				lines=inp.readlines()
+
 			for line in lines:
 				if line.startswith('#'):
 					continue
-				id=line.split('|')[0]
-				id+='.json'
-				metaid=id+'.meta'
+				fname=line.split('|')[0]
+				fname+='.json'
+				metafname=fname+'.meta'
 				url=line.split('|')[1]
 				metaurl=line.split('|')[2].split('\n')[0]
-				nvdchannels.append((id,url,metaid,metaurl))
+				zip=fname+'.gz'
+				channelinfo[fname]=dict()
+				channelinfo[fname]['url']=url
+				channelinfo[fname]['metafname']=metafname
+				channelinfo[fname]['metaurl']=metaurl
+				channelinfo[fname]['zip']=zip
 		except:
 			print "Catastrophic error with nvdchannels.conf. Check contents for syntax. Refer to nvdchannels.conf.tmpl for help"
 			sys.exit(-1)
-		modif=nvdchannels[0][0]
-		yearly=nvdchannels[1][0]
-		modifmeta=modif+'.meta'
-		yearlymeta=yearly+'.meta'
-		fnamefrommeta=dict()
-		fnamefrommeta[yearlymeta]=yearly
-		fnamefrommeta[modifmeta]=modif
+
 		cksums=dict()
 		try:
-			for channel in nvdchannels:
-				urlobj.retrieve(channel[3],channel[2])
-
-			for f in modifmeta,yearlymeta:
-				with open(f,'r') as inp:
+			for channel in channelinfo:
+				urlobj.retrieve(channelinfo[channel]['metaurl'],channelinfo[channel]['metafname'])
+				with open(channelinfo[channel]['metafname'],'r') as inp:
 					lines=inp.readlines()
 				cksum=''
 				for line in lines:
@@ -246,39 +245,37 @@ class CVECheck:
 						break
 				if cksum == '':
 					raise
-				cksums[fnamefrommeta[f]]=cksum
-			print cksums
+				channelinfo[channel]['sha256sum']=cksum
+
 			#lets compare checksums
-			for channel in nvdchannels:
-				retval,sha256sum=self.computeChecksum(channel[0])
-				print sha256sum
-				if sha256sum != cksums[channel[0]]:
-					print "Update available for %s"%channel[0]
-					zip=channel[0]+'.gz'
-					urlobj.retrieve(channel[1],zip)
-					with gzip.GzipFile(zip, 'rb') as f:
+			for channel in channelinfo:
+				retval,sha256sum=self.computeChecksum(channel)
+				if sha256sum != channelinfo[channel]['sha256sum']:
+					print "Update available for %s"%channelinfo[channel]
+					urlobj.retrieve(channelinfo[channel]['url'],channelinfo[channel]['zip'])
+					with gzip.GzipFile(channelinfo[channel]['zip'], 'rb') as f:
 						fcontent = f.read()
-					with open(channel[0],'wb') as out:
+					with open(channel,'wb') as out:
 						out.write(fcontent)
-			#insert into sha256sums if lines not present
-			retval1=self.checkforChanges(fname=modif)
-			retval2=self.checkforChanges(fname=yearly)
-			if retval1 == -1 or retval2 == -1:
-				print "Catastrophic failure. FS error?"
-				sys.exit(-1)
+					os.remove(channelinfo[channel]['zip'])
+				#insert into sha256sums if lines not present
+				retval=self.checkforChanges(fname=channel)
+				if retval == -1:
+					print "Catastrophic failure. FS error?"
+					sys.exit(-1)
 		except:
 			print "Could not fetch NVD metadata files; check internet connectivity. Your CVE store could not be updated."
 			#no metadata files. read the local nvd files
 			try:
-				retval1=self.checkforChanges(fname=modif)
-				retval2=self.checkforChanges(fname=yearly)
-				if retval1 == -1 or retval2 == -1:
-					raise
+				for channel in channelinfo:
+					retval=self.checkforChanges(fname=channel)
+					if retval == -1:
+						raise
 			except:
+				raise
 				print "Unable to read local nvd files. Execute initnvd.sh"
 				sys.exit(-1)
 			#this is the unupdated case. Local nvd files are available for reading
-		print 'common case'
 		#this is the updated case. Local nvd files are available for reading
 
 	def updatefromRedhat(self,url):
@@ -444,7 +441,6 @@ class CVECheck:
 				self.updatefromRedhat(val)
 			if key == 'nvd':
 				self.updatefromNVD()
-				#pass
 
 	def readStore(self,jsonfile,jsonobj):
 		try:

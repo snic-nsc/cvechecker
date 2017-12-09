@@ -1,4 +1,3 @@
-
 #comma-seperated list of packages you would like the tool to fetch complete CVE information for.
 #Fetching all CVEs is not practical, as they need to be fetched each time, to ensure information they provide is current.
 #packages|openmpi,torque,slurm,tsm,gpfs,luster,irods,postgres,tomcat,httpd
