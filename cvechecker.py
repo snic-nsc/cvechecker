@@ -309,7 +309,9 @@ class CVECheck:
 				self.writeStore(redhatjson,aggregobj)
 			except:
 				print 'cannot update CVEs for redhat packages; check internet connectivity.'
+		return(redhatjson)
 
+	def readRedhatfiles(self,redhatjson):
 		retval=self.checkforChanges(fname=redhatjson)
 		#this is where the redhat obj gets initialized
 		#if retval == 0, there is no change. Simply read store. If store doesn't exist, initialize afresh.
@@ -440,7 +442,8 @@ class CVECheck:
 	def updateStore(self):
 		for key, val in self.sources.iteritems():
 			if key == 'redhat':
-				self.updatefromRedhat(val)
+				jsonfile=self.updatefromRedhat(val)
+				self.readRedhatfiles(jsonfile)
 			if key == 'nvd':
 				self.updatefromNVD()
 
