@@ -18,16 +18,25 @@ class Result:
 	def __init__(self):
 		self.resultdict=dict()
 	
-	def addResult(self, cveid, cveurl, cvescore, affectedpackages, affectedproducts,description,details, mitigation):
+	def addResult(self, cveid, cveurl, cvescore, affectedpackages, rhproducts, affectedproducts,descriptions,details, mitigation):
 		if self.resultdict.__contains__(cveid):
 
-			self.resultdict[cveid]['description']=description
+			self.resultdict[cveid]['descriptions']=descriptions
 			self.resultdict[cveid]['details']=details
 			self.resultdict[cveid]['mitigation']=mitigation
 
 			for pkg in affectedpackages:
 				if not self.resultdict[cveid]['affectedpackages'].__contains__(pkg):
 					self.resultdict[cveid]['affectedpackages'].append(pkg)
+
+			for rhproddict in rhproducts:
+				for prod,pkg in rhproddict.iteritems():
+					if not self.resultdict[cveid]['rhproducts'].__contains__(prod):
+						self.resultdict[cveid]['rhproducts'][prod]=list()
+						self.resultdict[cveid]['rhproducts'][prod].append(pkg)
+					else:
+						if not self.resultdict[cveid]['rhproducts'][prod].__contains__(pkg):
+							self.resultdict[cveid]['rhproducts'][prod].append(pkg)
 			
 			for newvendordictdict in affectedproducts:
 				found=0
@@ -67,7 +76,9 @@ class Result:
 			self.resultdict[cveid]['url']=cveurl
 			self.resultdict[cveid]['mute']='off'
 			self.resultdict[cveid]['affectedpackages']=affectedpackages
+			self.resultdict[cveid]['rhproducts']=rhproducts
 			self.resultdict[cveid]['affectedproducts']=affectedproducts
+			self.resultdict[cveid]['descriptions']=descriptions
 			return
 
 	def trimResult(self, products=None, packages=None ,scores=None, cves=None, mute='none'):
@@ -189,7 +200,9 @@ class Result:
 		print "\nCVE Details"
 		print "-----------"
 		for cve in cvelist:
-			print "%s: %s"%(cve,self.resultdict[cve]['url'])
+			print cve
+			for desc in self.resultdict[cve]['descriptions']:
+				print desc
 
 class CVEDetails:
 	def __init__(self):
@@ -293,7 +306,43 @@ class CVECheck:
 				sys.exit(-1)
 			#this is the unupdated case. Local nvd files are available for reading
 		#this is the updated case. Local nvd files are available for reading
+		return(channelinfo)
 
+	def readNVDfiles(self,channelinfo):
+		inputs=dict()
+		inputs['cveid']=None	
+		inputs['cveurl']=None	
+		inputs['cvescore']=None	
+		inputs['affectedpackages']=list()	
+		inputs['affectedproducts']=list()
+		inputs['rhproducts']=list()	
+		inputs['descriptions']=list()	
+		inputs['details']=None	
+		inputs['mitigation']=None
+
+		for channel in channelinfo:
+			pobj=dict()
+			retval,pobj=self.readStore(channel,pobj)
+			for cveitem in pobj['CVE_Items']:
+				try:
+					cveid=cveitem['cve']['CVE_data_meta']['ID']
+					score=cveitem['impact']['baseMetricV3']['cvssV3']['baseScore']
+					descriptionlist=list()
+					for desc in cveitem['cve']['description']['description_data']:
+						descriptionlist.append(desc['value'])
+					vendor_list=cveitem['cve']['affects']['vendor']['vendor_data']
+					for vendor in vendor_list:
+						vendorname=vendor['vendorname']
+						prod_list=vendor['product']['product_data']
+						for prod in prod_list:
+							prodname=prod['product_name']
+							version_list=prod['version']['version_data']
+							for version in version_list:
+								versionval=version['version_value']
+					
+				except:
+					continue
+				
 	def updatefromRedhat(self,url):
 		redhatjson='redhat-cve.json'
 		try:
@@ -345,13 +394,14 @@ class CVECheck:
 			retval,rjobj=self.readStore(redhatjson,rjobj)
 			if retval != 0:
 				sys.exit(-1)
-			inputs=OrderedDict()
+			inputs=dict()
 			inputs['cveid']=None	
 			inputs['cveurl']=None	
 			inputs['cvescore']=None	
 			inputs['affectedpackages']=list()	
-			inputs['affectedproducts']=list()	
-			inputs['description']=None	
+			inputs['affectedproducts']=list()
+			inputs['rhproducts']=list()	
+			inputs['descriptions']=list	
 			inputs['details']=None	
 			inputs['mitigation']=None
 			for rj in rjobj:
@@ -362,10 +412,6 @@ class CVECheck:
 					inputs['cvescore']=rj['cvss3_score']
 				except:
 					moveon=1
-
-				inputs['description']=None
-				inputs['mitigation']=None
-				inputs['details']=None
 
 				if inputs['cvescore'] == None:
 					inputs['cvescore']='Missing'
@@ -382,7 +428,7 @@ class CVECheck:
 					except:
 						donothing=1
 					try:
-						inputs['description']=cveobj['bugzilla']['description']
+						inputs['descriptions'].append(cveobj['bugzilla']['description'])
 					except:
 						donothing=1
 					try:
@@ -402,7 +448,7 @@ class CVECheck:
 							print 'didnt find product %s'%pstate['product_name']
 							apdict[pstate['product_name']]=pstate['package']
 
-					inputs['affectedpackages'].append(apdict)
+					inputs['rhpackages'].append(apdict)
 
 				self.resObj.addResult(**inputs)
 			self.writeStore(self.vulnstore,self.resObj.resultdict)
@@ -465,7 +511,8 @@ class CVECheck:
 				jsonfile=self.updatefromRedhat(val)
 				self.readRedhatfiles(jsonfile)
 			if key == 'nvd':
-				self.updatefromNVD()
+				channelinfo=self.updatefromNVD()
+				self.readNVDfiles(channelinfo)
 
 	def readStore(self,jsonfile,jsonobj):
 		try:
