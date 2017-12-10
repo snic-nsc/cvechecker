@@ -28,26 +28,47 @@ class Result:
 			for pkg in affectedpackages:
 				if not self.resultdict[cveid]['affectedpackages'].__contains__(pkg):
 					self.resultdict[cveid]['affectedpackages'].append(pkg)
-			for prod,pkg in affectedproducts.iteritems():
-				if not self.resultdict[cveid]['affectedproducts'].__contains__(prod):
-					self.resultdict[cveid]['affectedproducts'][prod]=list()
-					self.resultdict[cveid]['affectedproducts'][prod].append(pkg)
-				else:
-					if not self.resultdict[cveid]['affectedproducts'][prod].__contains__(pkg):
-						self.resultdict[cveid]['affectedproducts'][prod].append(pkg)
+			
+			for newvendordictdict in affectedproducts:
+				found=0
+				for vendordict in self.resultdict[cveid]['affectedproducts']:
+					if vendordict['vendorname'] == newvendordict['vendornamme']:
+						found=1
+						break
+				if found == 0:
+					vendordict['vendorname']=newvendordict['vendorname']
+					vendordict['products']=newvendordict['products']
+					continue
+	
+				#append where not found
+				found=0
+				for newproddict in newvendordict['products']:
+					for proddict in vendordict['products']:
+						if proddict['prodname'] == newproddict['prodname']:
+							found=1
+							break
+					if found == 0:
+						proddict['prodname'] = newproddict['prodname']
+						proddict['versions'] = newproddict['versions']
+						continue
+
+					found=0
+					for newversion in newproddict['versions']:	
+						for version	in proddict['versions']:
+							if version == newversion:
+								found=1
+								break
+						proddict['versions'].append(newversion)
+						continue
 			
 		else:
 			self.resultdict[cveid]=OrderedDict()
 			self.resultdict[cveid]['score']=cvescore
 			self.resultdict[cveid]['url']=cveurl
 			self.resultdict[cveid]['mute']='off'
-			self.resultdict[cveid]['affectedpackages']=list()
-			for pkg in affectedpackages:
-				self.resultdict[cveid]['affectedpackages'].append(pkg)
-			self.resultdict[cveid]['affectedproducts']=OrderedDict()
-			for prod,pkg in affectedproducts.iteritems():
-				self.resultdict[cveid]['affectedproducts'][prod]=list()
-				self.resultdict[cveid]['affectedproducts'][prod].append(pkg)
+			self.resultdict[cveid]['affectedpackages']=affectedpackages
+			self.resultdict[cveid]['affectedproducts']=affectedproducts
+			return
 
 	def trimResult(self, products=None, packages=None ,scores=None, cves=None, mute='none'):
 
@@ -140,13 +161,6 @@ class Result:
 
 			if not cvelist.__contains__(key):
 				cvelist.append(key)
-			for prod,pkg in val['affectedproducts'].iteritems():
-				if not proddict.__contains__(prod):
-					proddict[prod]=list()
-					proddict[prod].append(pkg)
-				else:
-					if not proddict[prod].__contains__(pkg):
-						proddict[prod].append(pkg)
 				
 			for pkg in val['affectedpackages']:
 				if not pkglist.__contains__(pkg):
@@ -336,6 +350,7 @@ class CVECheck:
 			inputs['cveurl']=None	
 			inputs['cvescore']=None	
 			inputs['affectedpackages']=list()	
+			inputs['affectedproducts']=list()	
 			inputs['description']=None	
 			inputs['details']=None	
 			inputs['mitigation']=None
@@ -387,7 +402,7 @@ class CVECheck:
 							print 'didnt find product %s'%pstate['product_name']
 							apdict[pstate['product_name']]=pstate['package']
 
-					inputs['affectedproducts']=apdict	
+					inputs['affectedpackages'].append(apdict)
 
 				self.resObj.addResult(**inputs)
 			self.writeStore(self.vulnstore,self.resObj.resultdict)
