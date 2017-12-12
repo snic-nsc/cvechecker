@@ -30,16 +30,19 @@ class Result:
 					self.resultdict[cveid]['affectedpackages'].append(pkg)
 
 			for rhproddict in rhproducts:
-				for prod,pkg in rhproddict.iteritems():
-					if not self.resultdict[cveid]['rhproducts'].__contains__(prod):
-						self.resultdict[cveid]['rhproducts'][prod]=list()
-						self.resultdict[cveid]['rhproducts'][prod].append(pkg)
+				for newprod,newpkg in rhproddict.iteritems():
+					if not self.resultdict[cveid]['rhproducts'].__contains__(newprod):
+						self.resultdict[cveid]['rhproducts'][newprod]=list()
+						self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
 					else:
-						if not self.resultdict[cveid]['rhproducts'][prod].__contains__(pkg):
-							self.resultdict[cveid]['rhproducts'][prod].append(pkg)
+						if not self.resultdict[cveid]['rhproducts'][newprod].__contains__(pkg):
+							self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
 			
-			for newvendordictdict in affectedproducts:
-				found=0
+			for vendordict in affectedproducts:
+				if not self.resultdict[cveid]['affectedproducts'].__contains__(vendorname):
+					self.resultdict[cveid]['affectedproducts'][vendorname]=proddict
+					continue
+				if not self.resultdict[cveid]['affectedproducts'][
 				for vendordict in self.resultdict[cveid]['affectedproducts']:
 					if vendordict['vendorname'] == newvendordict['vendornamme']:
 						found=1
@@ -77,6 +80,7 @@ class Result:
 			self.resultdict[cveid]['mute']='off'
 			self.resultdict[cveid]['affectedpackages']=affectedpackages
 			self.resultdict[cveid]['rhproducts']=rhproducts
+					
 			self.resultdict[cveid]['affectedproducts']=affectedproducts
 			self.resultdict[cveid]['descriptions']=descriptions
 			return
@@ -399,7 +403,7 @@ class CVECheck:
 			inputs['cveurl']=None	
 			inputs['cvescore']=None	
 			inputs['affectedpackages']=list()	
-			inputs['affectedproducts']=list()
+			inputs['affectedproducts']=dict()
 			inputs['rhproducts']=list()	
 			inputs['descriptions']=list	
 			inputs['details']=None	
@@ -448,7 +452,7 @@ class CVECheck:
 							print 'didnt find product %s'%pstate['product_name']
 							apdict[pstate['product_name']]=pstate['package']
 
-					inputs['rhpackages'].append(apdict)
+					inputs['rhproducts'].append(apdict)
 
 				self.resObj.addResult(**inputs)
 			self.writeStore(self.vulnstore,self.resObj.resultdict)
