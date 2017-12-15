@@ -18,71 +18,70 @@ class Result:
 	def __init__(self):
 		self.resultdict=dict()
 	
-	def addResult(self, cveid, cveurl, cvescore, affectedpackages, rhproducts, affectedproducts,descriptions,details, mitigation):
+	def addResult(self, cveid, cveurl, cvescore, affectedpackages, rhproducts, affectedproducts,descriptions,details, mitigation, nvddescriptions):
 		if self.resultdict.__contains__(cveid):
-
-			self.resultdict[cveid]['descriptions']=descriptions
-			self.resultdict[cveid]['details']=details
-			self.resultdict[cveid]['mitigation']=mitigation
-
-			for pkg in affectedpackages:
-				if not self.resultdict[cveid]['affectedpackages'].__contains__(pkg):
-					self.resultdict[cveid]['affectedpackages'].append(pkg)
-
-			for rhproddict in rhproducts:
-				for newprod,newpkg in rhproddict.iteritems():
-					if not self.resultdict[cveid]['rhproducts'].__contains__(newprod):
-						self.resultdict[cveid]['rhproducts'][newprod]=list()
-						self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
-					else:
-						if not self.resultdict[cveid]['rhproducts'][newprod].__contains__(pkg):
-							self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
+			if descriptions != None:
+				self.resultdict[cveid]['descriptions']=descriptions
+			if details != None:
+				self.resultdict[cveid]['details']=details
+			if mitigation != None:
+				self.resultdict[cveid]['mitigation']=mitigation
+			if nvddescriptions != None:
+				self.resultdict[cveid]['nvddescriptions']=nvddescriptions
+			if cvescore != None: 
+				self.resultdict[cveid]['score']=cvescore
 			
-			for vendordict in affectedproducts:
-				if not self.resultdict[cveid]['affectedproducts'].__contains__(vendorname):
-					self.resultdict[cveid]['affectedproducts'][vendorname]=proddict
-					continue
-				if not self.resultdict[cveid]['affectedproducts'][
-				for vendordict in self.resultdict[cveid]['affectedproducts']:
-					if vendordict['vendorname'] == newvendordict['vendornamme']:
-						found=1
-						break
-				if found == 0:
-					vendordict['vendorname']=newvendordict['vendorname']
-					vendordict['products']=newvendordict['products']
-					continue
-	
-				#append where not found
-				found=0
-				for newproddict in newvendordict['products']:
-					for proddict in vendordict['products']:
-						if proddict['prodname'] == newproddict['prodname']:
-							found=1
-							break
-					if found == 0:
-						proddict['prodname'] = newproddict['prodname']
-						proddict['versions'] = newproddict['versions']
-						continue
+			if affectedpackages != None:			 
+				for pkg in affectedpackages:
+					if not self.resultdict[cveid]['affectedpackages'].__contains__(pkg):
+						self.resultdict[cveid]['affectedpackages'].append(pkg)
 
-					found=0
-					for newversion in newproddict['versions']:	
-						for version	in proddict['versions']:
-							if version == newversion:
-								found=1
-								break
-						proddict['versions'].append(newversion)
+			if rhproducts != None:
+				for rhproddict in rhproducts:
+					try:
+						for newprod,newpkg in rhproddict.iteritems():
+							if not self.resultdict[cveid]['rhproducts'].__contains__(newprod):
+								self.resultdict[cveid]['rhproducts'][newprod]=list()
+								self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
+							else:
+								if not self.resultdict[cveid]['rhproducts'][newprod].__contains__(newpkg):
+									self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
+					except:
+						print 'exception encountered. rhproddict='
+						print rhproddict
+						print type(self.resultdict[cveid]['rhproducts'])
+						raise
+
+			if affectedproducts != None:
+				for vendor,proddict in affectedproducts.iteritems():
+					if not self.resultdict[cveid]['affectedproducts'].__contains__(vendor):
+						self.resultdict[cveid]['affectedproducts'][vendor]=dict()	
 						continue
-			
+					for prodname,versionlist in proddict.iteritems():
+						if not self.resultdict[cveid]['affectedproducts'][vendor].__contains__(prodname):
+							self.resultdict[cveid]['affectedproducts'][vendor][prodname]=versionlist
+							continue
+						for version in versionlist:
+							if not self.resultdict[cveid]['affectedproducts'][vendor][prodname].__contains__(version):
+								self.resultdict[cveid]['affectedproducts'][vendor][prodname].append(version)
+								continue
+
 		else:
 			self.resultdict[cveid]=OrderedDict()
-			self.resultdict[cveid]['score']=cvescore
-			self.resultdict[cveid]['url']=cveurl
+			self.resultdict[cveid]['rhproducts']=dict()
+			if cvescore != None: 
+				self.resultdict[cveid]['score']=cvescore
+			if cveurl != None:
+				self.resultdict[cveid]['url']=cveurl
 			self.resultdict[cveid]['mute']='off'
-			self.resultdict[cveid]['affectedpackages']=affectedpackages
-			self.resultdict[cveid]['rhproducts']=rhproducts
-					
-			self.resultdict[cveid]['affectedproducts']=affectedproducts
-			self.resultdict[cveid]['descriptions']=descriptions
+			if affectedpackages != None:
+				self.resultdict[cveid]['affectedpackages']=affectedpackages
+			if affectedproducts != None:				
+				self.resultdict[cveid]['affectedproducts']=affectedproducts
+			if descriptions != None:
+				self.resultdict[cveid]['descriptions']=descriptions
+			if nvddescriptions != None:
+				self.resultdict[cveid]['nvddescriptions']=nvddescriptions
 			return
 
 	def trimResult(self, products=None, packages=None ,scores=None, cves=None, mute='none'):
@@ -215,7 +214,7 @@ class CVEDetails:
 		
 class CVECheck:
 	def __init__(self):
-		self.sources=dict()
+		self.sources=OrderedDict()
 		self.resObj=Result()
 		self.fallback=dict()
 		self.sources['redhat']='https://access.redhat.com/labs/securitydataapi/cve.json'
@@ -280,6 +279,7 @@ class CVECheck:
 				channelinfo[channel]['sha256sum']=cksum
 
 			#lets compare checksums
+			changed=0
 			for channel in channelinfo:
 				retval,sha256sum=self.computeChecksum(channel)
 				if sha256sum != channelinfo[channel]['sha256sum']:
@@ -292,6 +292,8 @@ class CVECheck:
 					os.remove(channelinfo[channel]['zip'])
 				#insert into sha256sums if lines not present
 				retval=self.checkforChanges(fname=channel)
+				if retval != 0:
+					changed=1
 				if retval == -1:
 					print "Catastrophic failure. FS error?"
 					sys.exit(-1)
@@ -309,43 +311,83 @@ class CVECheck:
 				print "Unable to read local nvd files. Execute initnvd.sh"
 				sys.exit(-1)
 			#this is the unupdated case. Local nvd files are available for reading
-		#this is the updated case. Local nvd files are available for reading
-		return(channelinfo)
+			return(0,channelinfo)
+		#this is the potentially updated case. Local nvd files are available for reading
+		if changed == 1:
+			return(1,channelinfo)
+		else:
+			return(0,channelinfo)
 
-	def readNVDfiles(self,channelinfo):
+	def readNVDfiles(self,channelinfo,retval):
+		try:
+			with open('vulnstore.json','r') as inp:
+				donothing=1
+		except:
+			print 'No vuln store file found. Initializing from whatever we have.'
+			retval=1
+		if retval == 0:
+			print 'Nothing has changed from the last invocation. Will read from local store and proceed'
+			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
+			return
+		
 		inputs=dict()
 		inputs['cveid']=None	
 		inputs['cveurl']=None	
 		inputs['cvescore']=None	
-		inputs['affectedpackages']=list()	
-		inputs['affectedproducts']=list()
-		inputs['rhproducts']=list()	
-		inputs['descriptions']=list()	
+		inputs['affectedpackages']=None	
+		inputs['affectedproducts']=dict()
+		inputs['rhproducts']=None
+		inputs['descriptions']=None	
 		inputs['details']=None	
 		inputs['mitigation']=None
-
+		inputs['nvddescriptions']=list()
+		exceptioncount=0
+		idxcount=0
+		basescorex=0
+		descx=0
+		
 		for channel in channelinfo:
 			pobj=dict()
 			retval,pobj=self.readStore(channel,pobj)
 			for cveitem in pobj['CVE_Items']:
 				try:
-					cveid=cveitem['cve']['CVE_data_meta']['ID']
-					score=cveitem['impact']['baseMetricV3']['cvssV3']['baseScore']
-					descriptionlist=list()
+					inputs['cveid']=cveitem['cve']['CVE_data_meta']['ID']
+				except:
+					idxcount+=1
+				try:
+					inputs['cvescore']=cveitem['impact']['baseMetricV3']['cvssV3']['baseScore']
+				except:
+					basescorex+=1
+				try:
 					for desc in cveitem['cve']['description']['description_data']:
-						descriptionlist.append(desc['value'])
+						inputs['nvddescriptions'].append(desc['value'])
+				except:
+					descx+=1
+					continue
+				try:
 					vendor_list=cveitem['cve']['affects']['vendor']['vendor_data']
 					for vendor in vendor_list:
-						vendorname=vendor['vendorname']
+						if not inputs['affectedproducts'].__contains__(vendor['vendor_name']):
+							inputs['affectedproducts'][vendor['vendor_name']]=dict()
 						prod_list=vendor['product']['product_data']
 						for prod in prod_list:
-							prodname=prod['product_name']
+							if not inputs['affectedproducts'][vendor['vendor_name']].__contains__(prod['product_name']):
+								inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']]=list()
 							version_list=prod['version']['version_data']
 							for version in version_list:
-								versionval=version['version_value']
+								if not inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']].__contains__(version['version_value']):
+									inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']].append(version['version_value'])
 					
+					self.resObj.addResult(**inputs)
 				except:
+					exceptioncount+=1
+					raise
 					continue
+		print 'exceptioncount is %d'%exceptioncount
+		print idxcount,basescorex,descx
+		print len(self.resObj.resultdict)
+		sys.exit(9)
+		self.writeStore(self.vulnstore,self.resObj.resultdict)
 				
 	def updatefromRedhat(self,url):
 		redhatjson='redhat-cve.json'
@@ -381,6 +423,7 @@ class CVECheck:
 			except:
 				print 'cannot update CVEs for redhat packages; check internet connectivity.'
 				self.noconnectivity=1
+
 		return(redhatjson)
 
 	def readRedhatfiles(self,redhatjson):
@@ -403,11 +446,12 @@ class CVECheck:
 			inputs['cveurl']=None	
 			inputs['cvescore']=None	
 			inputs['affectedpackages']=list()	
-			inputs['affectedproducts']=dict()
+			inputs['affectedproducts']=None
 			inputs['rhproducts']=list()	
 			inputs['descriptions']=list	
 			inputs['details']=None	
 			inputs['mitigation']=None
+			inputs['nvddescriptions']=None
 			for rj in rjobj:
 				try:
 					inputs['cveid']=rj['CVE']
@@ -434,7 +478,7 @@ class CVECheck:
 					try:
 						inputs['descriptions'].append(cveobj['bugzilla']['description'])
 					except:
-						donothing=1
+						inputs['descriptions'] = None
 					try:
 						intputs['mitigation']=cveobj['mitigation']
 					except:
@@ -453,9 +497,20 @@ class CVECheck:
 							apdict[pstate['product_name']]=pstate['package']
 
 					inputs['rhproducts'].append(apdict)
-
+				if type(inputs['descriptions']) != str and type(inputs['descriptions']) != type(None):
+					print type(inputs['descriptions'])
+					print inputs['descriptions']
+					print inputs['cveid']
+					sys.exit(-1)	
 				self.resObj.addResult(**inputs)
-			self.writeStore(self.vulnstore,self.resObj.resultdict)
+			try:
+				self.writeStore(self.vulnstore,self.resObj.resultdict)
+			except:
+				print 'ran into our issue'
+				print type(self.resObj.resultdict)
+				for key, val in self.resObj.resultdict.iteritems():
+					print key,val
+				raise
 			return
 		else: # nothing to do here. resultdict has been initialized from vuln object directly, and there are no more changes.
 			return
@@ -512,11 +567,12 @@ class CVECheck:
 	def updateStore(self):
 		for key, val in self.sources.iteritems():
 			if key == 'redhat':
-				jsonfile=self.updatefromRedhat(val)
-				self.readRedhatfiles(jsonfile)
+				continue
+				#jsonfile=self.updatefromRedhat(val)
+				#self.readRedhatfiles(jsonfile)
 			if key == 'nvd':
-				channelinfo=self.updatefromNVD()
-				self.readNVDfiles(channelinfo)
+				retval,channelinfo=self.updatefromNVD()
+				self.readNVDfiles(channelinfo,retval)
 
 	def readStore(self,jsonfile,jsonobj):
 		try:
