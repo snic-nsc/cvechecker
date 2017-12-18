@@ -7,6 +7,7 @@ from hashlib import sha256
 import simplejson as json
 from numbers import Number
 import socket
+import time
 import urllib,urllib2
 import gzip,os
 
@@ -17,6 +18,7 @@ socket.setdefaulttimeout(30)
 class Result:
 	def __init__(self):
 		self.resultdict=dict()
+		self.sentinel=0
 	
 	def addResult(self, cveid, cveurl, cvescore, affectedpackages, rhproducts, affectedproducts,descriptions,details, mitigation, nvddescriptions):
 		if self.resultdict.__contains__(cveid):
@@ -37,6 +39,7 @@ class Result:
 						self.resultdict[cveid]['affectedpackages'].append(pkg)
 
 			if rhproducts != None:
+				print 'came into addResult with non-NONE rhproducts'
 				for rhproddict in rhproducts:
 					try:
 						for newprod,newpkg in rhproddict.iteritems():
@@ -51,11 +54,13 @@ class Result:
 						print rhproddict
 						print type(self.resultdict[cveid]['rhproducts'])
 						raise
+				print self.resultdict[cveid]['rhproducts']
+				sys.exit(-1)
 
 			if affectedproducts != None:
 				for vendor,proddict in affectedproducts.iteritems():
 					if not self.resultdict[cveid]['affectedproducts'].__contains__(vendor):
-						self.resultdict[cveid]['affectedproducts'][vendor]=dict()	
+						self.resultdict[cveid]['affectedproducts'][vendor]=proddict
 						continue
 					for prodname,versionlist in proddict.iteritems():
 						if not self.resultdict[cveid]['affectedproducts'][vendor].__contains__(prodname):
@@ -69,6 +74,12 @@ class Result:
 		else:
 			self.resultdict[cveid]=OrderedDict()
 			self.resultdict[cveid]['rhproducts']=dict()
+			self.resultdict[cveid]['affectedpackages']=list()
+			self.resultdict[cveid]['affectedproducts']=dict()
+			self.resultdict[cveid]['descriptions']=list()
+			self.resultdict[cveid]['nvddescriptions']=list()
+			self.resultdict[cveid]['details']=list()
+			
 			if cvescore != None: 
 				self.resultdict[cveid]['score']=cvescore
 			if cveurl != None:
@@ -82,6 +93,10 @@ class Result:
 				self.resultdict[cveid]['descriptions']=descriptions
 			if nvddescriptions != None:
 				self.resultdict[cveid]['nvddescriptions']=nvddescriptions
+			if rhproducts != None:
+				self.resultdict[cveid]['rhproducts']=rhproducts
+			if details != None:
+				self.resultdict[cveid]['details']=details
 			return
 
 	def trimResult(self, products=None, packages=None ,scores=None, cves=None, mute='none'):
@@ -130,13 +145,15 @@ class Result:
 			if products != None:
 				found=0
 				for product in products:
-					for pdt in val['affectedproducts']:
-						if pdt.startswith(product):
-							found=1
+					for vendor,proddict in val['affectedproducts'].iteritems():
+						for prodname, versionlist in proddict.iteritems():
+							if prodname.startswith(product):
+								found=1
+								break
+						if found == 1:
 							break
 					if found == 1:
 						break
-
 				if found == 0:
 					continue
 
@@ -152,23 +169,17 @@ class Result:
 				json.dump(self.resultdict,outfile)
 		self.resultdict=newresultdict
 
-	def printMuted(self):
-		for key, value in self.resultdict.iteritems():
-			if value['mute'] == 'on':
-				print key
-				print 'Affected packages:-'
-				for pkg in value['affectedpackages']:
-					print pkg
-
-	def printResult(self, products=None,packages=None,scores=None):
+	def printResult(self, products=None,packages=None,scores=None,mutestate='on'):
 		
 		cvelist=list()
 		proddict=OrderedDict()
 		pkglist=list()
 		scorelist=list()
-				
+		rhprodlist=list()
+		mutecount=0
 		for key,val in self.resultdict.iteritems():
-			if self.resultdict[key]['mute'] == "on":
+			if self.resultdict[key]['mute'] == mutestate:
+				mutecount+=1
 				continue
 
 			scorelist.append(val['score'])
@@ -179,16 +190,41 @@ class Result:
 			for pkg in val['affectedpackages']:
 				if not pkglist.__contains__(pkg):
 					pkglist.append(pkg)
+			if len(val['rhproducts']) != 0:
+				rhprodlist.append(val['rhproducts'])
 
-		#if packages != None:
-		for pkg in pkglist:
-			print pkg
-		
-		#if products != None:
-		print "\nRedhat Product Info\n"
-		for pd,pkg in proddict.iteritems():
-			print '%s:%s'%(pd,pkg)
-		
+		if len(self.resultdict)!= 0 and len(self.resultdict)>mutecount:
+
+			print "----------------"
+			print "Info from Redhat"
+			print "----------------"
+			print "Affected Packages"
+			print "-----------------"
+			for pkg in pkglist:
+				print pkg
+			print "Redhat Platform info"
+			print "--------------------"
+			for listitem in rhprodlist:
+				for rhproddict in listitem:
+					for plat,pkg in rhproddict.iteritems():
+						print "Platform: %s"%plat
+						print pkg
+
+			print "\nCVE Details"
+			print "-----------"
+			for cve in cvelist:
+				print 'Id:%s Score:%s'%(cve,self.resultdict[cve]['score'])
+				print "------------------------------------- "
+				print 'Redhat'
+				for desc in self.resultdict[cve]['descriptions']:
+					print desc
+				for detl in self.resultdict[cve]['details']:
+					print detl
+				print 'NVD'
+				for desc in self.resultdict[cve]['nvddescriptions']:
+					print desc
+				print ""
+
 		with open ('listedscores','w') as outfile:
 			for score in scorelist:
 				outfile.write('%s\n'%score)
@@ -200,12 +236,6 @@ class Result:
 			for cve in cvelist:
 				outfile.write('%s\n'%cve)
 			
-		print "\nCVE Details"
-		print "-----------"
-		for cve in cvelist:
-			print cve
-			for desc in self.resultdict[cve]['descriptions']:
-				print desc
 
 class CVEDetails:
 	def __init__(self):
@@ -326,7 +356,7 @@ class CVECheck:
 			print 'No vuln store file found. Initializing from whatever we have.'
 			retval=1
 		if retval == 0:
-			print 'Nothing has changed from the last invocation. Will read from local store and proceed'
+			#print 'Nothing has changed from the last invocation. Will read from local store and proceed'
 			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
 			return
 		
@@ -357,6 +387,7 @@ class CVECheck:
 				try:
 					inputs['cvescore']=cveitem['impact']['baseMetricV3']['cvssV3']['baseScore']
 				except:
+					inputs['cvescore']='Missing'
 					basescorex+=1
 				try:
 					for desc in cveitem['cve']['description']['description_data']:
@@ -440,18 +471,18 @@ class CVECheck:
 			retval,rjobj=self.readStore(redhatjson,rjobj)
 			if retval != 0:
 				sys.exit(-1)
-			inputs=dict()
-			inputs['cveid']=None	
-			inputs['cveurl']=None	
-			inputs['cvescore']=None	
-			inputs['affectedpackages']=list()	
-			inputs['affectedproducts']=None
-			inputs['rhproducts']=list()	
-			inputs['descriptions']=list	
-			inputs['details']=None	
-			inputs['mitigation']=None
-			inputs['nvddescriptions']=None
 			for rj in rjobj:
+				inputs=dict()
+				inputs['cveid']=None
+				inputs['cveurl']=None
+				inputs['cvescore']=None
+				inputs['affectedpackages']=list()
+				inputs['affectedproducts']=None
+				inputs['rhproducts']=list()
+				inputs['descriptions']=list()
+				inputs['details']=None
+				inputs['mitigation']=None
+				inputs['nvddescriptions']=None
 				try:
 					inputs['cveid']=rj['CVE']
 					inputs['cveurl']=rj['resource_url']
@@ -494,13 +525,8 @@ class CVECheck:
 						except:
 							print 'didnt find product %s'%pstate['product_name']
 							apdict[pstate['product_name']]=pstate['package']
+						inputs['rhproducts'].append(apdict)
 
-					inputs['rhproducts'].append(apdict)
-				if type(inputs['descriptions']) != str and type(inputs['descriptions']) != type(None):
-					print type(inputs['descriptions'])
-					print inputs['descriptions']
-					print inputs['cveid']
-					sys.exit(-1)	
 				self.resObj.addResult(**inputs)
 			try:
 				self.writeStore(self.vulnstore,self.resObj.resultdict)
@@ -566,16 +592,14 @@ class CVECheck:
 	def updateStore(self):
 		for key, val in self.sources.iteritems():
 			if key == 'redhat':
-				continue
-				#jsonfile=self.updatefromRedhat(val)
-				#self.readRedhatfiles(jsonfile)
+				jsonfile=self.updatefromRedhat(val)
+				self.readRedhatfiles(jsonfile)
 			if key == 'nvd':
 				retval,channelinfo=self.updatefromNVD()
 				self.readNVDfiles(channelinfo,retval)
 
 	def readStore(self,jsonfile,jsonobj):
 		try:
-			print 'reading in file %s'%jsonfile
 			with codecs.open(jsonfile,'r','utf-8') as infile:
 				jsonobj=json.load(infile)
 		except:
@@ -590,6 +614,7 @@ aparser=argparse.ArgumentParser(description='A tool to fetch and update a local 
 aparser.add_argument("-c", "--cve", type=str, default='none',help='output information about specified CVE or comma-separated list of CVEs. Cannot be combined with any other filter/option.')
 aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical".') #lookup by severity level
 aparser.add_argument("-pkg", "--package", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by package, e.g. httpd
+aparser.add_argument("-pdt", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by package, e.g. httpd
 aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one or more filters, and must include -pkg') #mark results as seen or unseen
 aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. Any other options are ignored, when combined with this option.') #mark results as seen or unseen
 
@@ -597,12 +622,14 @@ args=aparser.parse_args()
 cve=args.cve
 severity=args.severity
 package=args.package
+product=args.product
 mute=args.mute
 disp_mute=args.disp_mute
 
 argsdict=dict()
 argsdict['scores']=None
 argsdict['packages']=None
+argsdict['products']=None
 argsdict['cves']=None
 resobj=Result()
 cvcobj=CVECheck()
@@ -619,25 +646,27 @@ if severity != 'none':
 if package != 'none':
 	argsdict['packages']=package.split(',')
 
+if product != 'none':
+	argsdict['products']=product.split(',')
+
 if mute != 'none':
 	if mute != 'on' and mute != 'off':
 		print 'Value for mute flag can only be "off" or "on"'
 		sys.exit(-1)
-	if package == 'none' and cve == 'none':
+	if product == 'none' and cve == 'none':
 		print 'Mute flag requires the use of the --pkg or the --cve option. If both are specified, --pkg is ignored.'
 		sys.exit(-1)
 	argsdict['mute']=mute
 
 cvcobj.updateStore()
-if disp_mute != 'none':
-	cvcobj.resObj.printMuted()
-	sys.exit(0)
 
 if cve != 'none':
 	argsdict['cves']=cve.split(',')
 	argsdict['scores']=None
 	argsdict['packages']=None
 
-argsdict['products']=None
 cvcobj.resObj.trimResult(**argsdict)
-cvcobj.resObj.printResult(scores=argsdict['scores'],products=None,packages=argsdict['packages'])
+if disp_mute != 'none':
+	cvcobj.resObj.printResult(scores=argsdict['scores'],products=None,packages=argsdict['packages'],mutestate='off')
+else:
+	cvcobj.resObj.printResult(scores=argsdict['scores'],products=None,packages=argsdict['packages'])
