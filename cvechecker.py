@@ -397,7 +397,7 @@ class CVECheck:
 				try:
 					inputs['cvescore']=cveitem['impact']['baseMetricV3']['cvssV3']['baseScore']
 				except:
-					inputs['cvescore']='11' #value for a missing score
+					inputs['cvescore']=11 #value for a missing score
 					basescorex+=1
 				try:
 					for desc in cveitem['cve']['description']['description_data']:
@@ -502,7 +502,7 @@ class CVECheck:
 					moveon=1
 
 				if inputs['cvescore'] == None:
-					inputs['cvescore']='Missing'
+					inputs['cvescore']=11 #value for missing score
 				if self.noconnectivity == 0:
 					try:
 						print 'pulling down %s'%(inputs['cveurl'])
