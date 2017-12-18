@@ -19,6 +19,13 @@ class Result:
 	def __init__(self):
 		self.resultdict=dict()
 		self.sentinel=0
+		self.scoredefs=OrderedDict()
+		self.scoredefs['None']={'high':0.0, 'low':0.0}
+		self.scoredefs['Low']={'high':3.9, 'low':0.1}
+		self.scoredefs['Medium']={'high':6.9, 'low':4.0}
+		self.scoredefs['High']={'high':8.9, 'low':7.0}
+		self.scoredefs['Critical']={'high':10.0, 'low':9.0}
+		self.scoredefs['Missing']={'high':11.0, 'low':11.0}
 	
 	def addResult(self, cveid, cveurl, cvescore, affectedpackages, rhproducts, affectedproducts,descriptions,details, mitigation, nvddescriptions):
 		if self.resultdict.__contains__(cveid):
@@ -98,13 +105,6 @@ class Result:
 
 	def trimResult(self, products=None, packages=None ,scores=None, cves=None, mute='none'):
 
-		scoredefs=OrderedDict()
-		scoredefs['None']={'high':0.0, 'low':0.0}
-		scoredefs['Low']={'high':3.9, 'low':0.1}
-		scoredefs['Medium']={'high':6.9, 'low':4.0}
-		scoredefs['High']={'high':8.9, 'low':7.0}
-		scoredefs['Critical']={'high':10.0, 'low':9.0}
-		scoredefs['Missing']={'high':11.0, 'low':11.0}
 
 		newresultdict=dict()
 		for key, val in self.resultdict.iteritems():
@@ -120,7 +120,7 @@ class Result:
 			if scores != None:
 				numfails=0
 				for score in scores:
-					scorezone=scoredefs[score]
+					scorezone=self.scoredefs[score]
 					if val['score'] < scorezone['low'] or val['score'] > scorezone['high']:
 						numfails+=1
 				if numfails == len(scores):
@@ -172,7 +172,7 @@ class Result:
 		proddict=OrderedDict()
 		pkglist=list()
 		scorelist=list()
-		rhprodlist=list()
+		rhproddict=dict()
 		mutecount=0
 		for key,val in self.resultdict.iteritems():
 			if self.resultdict[key]['mute'] == mutestate:
@@ -188,7 +188,13 @@ class Result:
 				if not pkglist.__contains__(pkg):
 					pkglist.append(pkg)
 			if len(val['rhproducts']) != 0:
-				rhprodlist.append(val['rhproducts'])
+				for plt,pkg in val['rhproducts'].iteritems():
+					if not rhproddict.__contains__(plt):
+						rhproddict[plt]=list()
+						rhproddict[plt].append(pkg)
+						continue
+					if not rhproddict[plt].__contains__(pkg):
+						rhproddict[plt].append(pkg)
 
 		if len(self.resultdict)!= 0 and len(self.resultdict)>mutecount:
 
@@ -201,15 +207,23 @@ class Result:
 				print pkg
 			print "Redhat Platform info"
 			print "--------------------"
-			for rhproddict in rhprodlist:
-				for plat,pkg in rhproddict.iteritems():
-					print "Platform: %s"%plat
+			for plat,pkgs in rhproddict.iteritems():
+				print "Platform: %s"%plat
+				for pkg in pkgs:
 					print pkg
+				print ""
 
 			print "\nCVE Details"
 			print "-----------"
 			for cve in cvelist:
-				print 'Id:%s Score:%s'%(cve,self.resultdict[cve]['score'])
+				numericscore=self.resultdict[cve]['score']
+				for scoredef,rng in self.scoredefs.iteritems():
+					if numericscore > rng['high']:
+						continue
+					textscore=scoredef
+					break
+				
+				print 'Id:%s Score:%s'%(cve,textscore)
 				print "------------------------------------- "
 				print 'Redhat'
 				for desc in self.resultdict[cve]['descriptions']:
@@ -383,7 +397,7 @@ class CVECheck:
 				try:
 					inputs['cvescore']=cveitem['impact']['baseMetricV3']['cvssV3']['baseScore']
 				except:
-					inputs['cvescore']='Missing'
+					inputs['cvescore']='11' #value for a missing score
 					basescorex+=1
 				try:
 					for desc in cveitem['cve']['description']['description_data']:
