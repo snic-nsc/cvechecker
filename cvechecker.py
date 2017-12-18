@@ -330,17 +330,6 @@ class CVECheck:
 			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
 			return
 		
-		inputs=dict()
-		inputs['cveid']=None	
-		inputs['cveurl']=None	
-		inputs['cvescore']=None	
-		inputs['affectedpackages']=None	
-		inputs['affectedproducts']=dict()
-		inputs['rhproducts']=None
-		inputs['descriptions']=None	
-		inputs['details']=None	
-		inputs['mitigation']=None
-		inputs['nvddescriptions']=list()
 		exceptioncount=0
 		idxcount=0
 		basescorex=0
@@ -350,6 +339,17 @@ class CVECheck:
 			pobj=dict()
 			retval,pobj=self.readStore(channel,pobj)
 			for cveitem in pobj['CVE_Items']:
+				inputs=dict()
+				inputs['cveid']=None
+				inputs['cveurl']=None
+				inputs['cvescore']=None
+				inputs['affectedpackages']=None
+				inputs['affectedproducts']=dict()
+				inputs['rhproducts']=None
+				inputs['descriptions']=None
+				inputs['details']=None
+				inputs['mitigation']=None
+				inputs['nvddescriptions']=list()
 				try:
 					inputs['cveid']=cveitem['cve']['CVE_data_meta']['ID']
 				except:
@@ -386,7 +386,6 @@ class CVECheck:
 		print 'exceptioncount is %d'%exceptioncount
 		print idxcount,basescorex,descx
 		print len(self.resObj.resultdict)
-		sys.exit(9)
 		self.writeStore(self.vulnstore,self.resObj.resultdict)
 				
 	def updatefromRedhat(self,url):
@@ -576,6 +575,7 @@ class CVECheck:
 
 	def readStore(self,jsonfile,jsonobj):
 		try:
+			print 'reading in file %s'%jsonfile
 			with codecs.open(jsonfile,'r','utf-8') as infile:
 				jsonobj=json.load(infile)
 		except:
