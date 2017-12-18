@@ -40,22 +40,19 @@ class Result:
 
 			if rhproducts != None:
 				print 'came into addResult with non-NONE rhproducts'
-				for rhproddict in rhproducts:
+				for newprod,newpkg in rhproducts.iteritems():
 					try:
-						for newprod,newpkg in rhproddict.iteritems():
-							if not self.resultdict[cveid]['rhproducts'].__contains__(newprod):
-								self.resultdict[cveid]['rhproducts'][newprod]=list()
+						if not self.resultdict[cveid]['rhproducts'].__contains__(newprod):
+							self.resultdict[cveid]['rhproducts'][newprod]=list()
+							self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
+						else:
+							if not self.resultdict[cveid]['rhproducts'][newprod].__contains__(newpkg):
 								self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
-							else:
-								if not self.resultdict[cveid]['rhproducts'][newprod].__contains__(newpkg):
-									self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
 					except:
 						print 'exception encountered. rhproddict='
 						print rhproddict
 						print type(self.resultdict[cveid]['rhproducts'])
 						raise
-				print self.resultdict[cveid]['rhproducts']
-				sys.exit(-1)
 
 			if affectedproducts != None:
 				for vendor,proddict in affectedproducts.iteritems():
@@ -204,11 +201,10 @@ class Result:
 				print pkg
 			print "Redhat Platform info"
 			print "--------------------"
-			for listitem in rhprodlist:
-				for rhproddict in listitem:
-					for plat,pkg in rhproddict.iteritems():
-						print "Platform: %s"%plat
-						print pkg
+			for rhproddict in rhprodlist:
+				for plat,pkg in rhproddict.iteritems():
+					print "Platform: %s"%plat
+					print pkg
 
 			print "\nCVE Details"
 			print "-----------"
@@ -478,7 +474,7 @@ class CVECheck:
 				inputs['cvescore']=None
 				inputs['affectedpackages']=list()
 				inputs['affectedproducts']=None
-				inputs['rhproducts']=list()
+				inputs['rhproducts']=None
 				inputs['descriptions']=list()
 				inputs['details']=None
 				inputs['mitigation']=None
@@ -525,7 +521,7 @@ class CVECheck:
 						except:
 							print 'didnt find product %s'%pstate['product_name']
 							apdict[pstate['product_name']]=pstate['package']
-						inputs['rhproducts'].append(apdict)
+					inputs['rhproducts']=apdict
 
 				self.resObj.addResult(**inputs)
 			try:
