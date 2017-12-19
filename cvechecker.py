@@ -166,7 +166,7 @@ class Result:
 				json.dump(self.resultdict,outfile)
 		self.resultdict=newresultdict
 
-	def printResult(self, products=None,packages=None,scores=None,mutestate='on'):
+	def printResult(self, mutestate='on'):
 		
 		cvelist=list()
 		proddict=OrderedDict()
@@ -625,22 +625,19 @@ class CVECheck:
 aparser=argparse.ArgumentParser(description='A tool to fetch and update a local vulnerability store against select sources of vulnerability information. It can be queried for specific CVEs, by severity or product name, or a combination. Entries can be marked as "seen" to allow one to "mute" alerts for onal words into the corpus.')
 aparser.add_argument("-c", "--cve", type=str, default='none',help='output information about specified CVE or comma-separated list of CVEs. Cannot be combined with any other filter/option.')
 aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical".') #lookup by severity level
-aparser.add_argument("-pkg", "--package", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by package, e.g. httpd
-aparser.add_argument("-pdt", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by package, e.g. httpd
+aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by package, e.g. httpd
 aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one or more filters, and must include -pkg') #mark results as seen or unseen
 aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. Any other options are ignored, when combined with this option.') #mark results as seen or unseen
 
 args=aparser.parse_args()
 cve=args.cve
 severity=args.severity
-package=args.package
 product=args.product
 mute=args.mute
 disp_mute=args.disp_mute
 
 argsdict=dict()
 argsdict['scores']=None
-argsdict['packages']=None
 argsdict['products']=None
 argsdict['cves']=None
 resobj=Result()
@@ -655,9 +652,6 @@ if severity != 'none':
 	argsdict['scores']=scores
 
 
-if package != 'none':
-	argsdict['packages']=package.split(',')
-
 if product != 'none':
 	argsdict['products']=product.split(',')
 
@@ -666,7 +660,7 @@ if mute != 'none':
 		print 'Value for mute flag can only be "off" or "on"'
 		sys.exit(-1)
 	if product == 'none' and cve == 'none':
-		print 'Mute flag requires the use of the --pkg or the --cve option. If both are specified, --pkg is ignored.'
+		print 'Mute flag requires the use of the --package or the --cve option. If both are specified, --package is ignored.'
 		sys.exit(-1)
 	argsdict['mute']=mute
 
@@ -675,10 +669,10 @@ cvcobj.updateStore()
 if cve != 'none':
 	argsdict['cves']=cve.split(',')
 	argsdict['scores']=None
-	argsdict['packages']=None
+	argsdict['products']=None
 
 cvcobj.resObj.trimResult(**argsdict)
 if disp_mute != 'none':
-	cvcobj.resObj.printResult(scores=argsdict['scores'],products=None,packages=argsdict['packages'],mutestate='off')
+	cvcobj.resObj.printResult(mutestate='off')
 else:
-	cvcobj.resObj.printResult(scores=argsdict['scores'],products=None,packages=argsdict['packages'])
+	cvcobj.resObj.printResult()
