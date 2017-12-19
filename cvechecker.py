@@ -47,7 +47,7 @@ class Result:
 						mtdstr=self.resultdict[cveid]['muteddate']
 						mtdobj=datetime.datetime.strptime(mtdstr,'%Y-%m-%d %H:%M')
 						modifdobj=datetime.datetime.strptime(lastmodifieddate,'%Y-%m-%d %H:%M')
-						if modifobj > mtobj:
+						if modifdobj > mtdobj:
 							self.resultdict[cveid]['muteddate']=''
 							self.resultdict[cveid]['mute']='off'
 					except:
@@ -454,7 +454,7 @@ class CVECheck:
 					raise
 					continue
 		print 'exceptioncount is %d'%exceptioncount
-		print idxcount,basescorex,descx
+		print idxcount,basescorex,descx,datex
 		print len(self.resObj.resultdict)
 		self.writeStore(self.vulnstore,self.resObj.resultdict)
 				
@@ -522,6 +522,7 @@ class CVECheck:
 				inputs['details']=None
 				inputs['mitigation']=None
 				inputs['nvddescriptions']=None
+				inputs['lastmodifieddate']=None
 				try:
 					inputs['cveid']=rj['CVE']
 					inputs['cveurl']=rj['resource_url']
@@ -650,9 +651,9 @@ class CVECheck:
 	
 aparser=argparse.ArgumentParser(description='A tool to fetch and update a local vulnerability store against select sources of vulnerability information. It can be queried for specific CVEs, by severity or product name, or a combination. Entries can be marked as "seen" to allow one to "mute" alerts for onal words into the corpus.')
 aparser.add_argument("-c", "--cve", type=str, default='none',help='output information about specified CVE or comma-separated list of CVEs. Cannot be combined with any other filter/option.')
-aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical".') #lookup by severity level
+aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical". Needs to be used with --product.') #lookup by severity level
 aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by package, e.g. httpd
-aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one or more filters, and must include -pkg') #mark results as seen or unseen
+aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one or more filters, and must include --product') #mark results as seen or unseen
 aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the vulnerability store. Should be run regularly, preferably from a cron.') #mark results as seen or unseen
 aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. Any other options are ignored, when combined with this option.') #mark results as seen or unseen
 
@@ -677,6 +678,9 @@ if severity != 'none':
 		if score != 'None' and score != 'Low' and score != 'High' and score != 'Medium' and score != 'Critical' and score != 'Missing':
 			print 'Invalid severity level!'
 			sys.exit(-1)
+	if product == 'none':
+		print 'This option requires you to specify at least one product with the --product option'
+		sys.exit(-1)
 	argsdict['scores']=scores
 
 
@@ -704,15 +708,15 @@ if cve != 'none':
 
 if len(sys.argv) == 1:
 	aparser.print_help()
-	sys.exit(-1)
 
-retval,cvcobj.resObj.resultdict=cvcobj.readStore(cvcobj.vulnstore,cvcobj.resObj.resultdict)
-if retval == -1:
-	print 'Trouble initializing from local vuln store. Aborting.'
-	sys.exit(-1)
+if mute != 'none' or product != 'none' or cve != 'none':
+	retval,cvcobj.resObj.resultdict=cvcobj.readStore(cvcobj.vulnstore,cvcobj.resObj.resultdict)
+	if retval == -1:
+		print 'Trouble initializing from local vuln store. Aborting.'
+		sys.exit(-1)
 
-cvcobj.resObj.trimResult(**argsdict)
-if disp_mute != 'none':
-	cvcobj.resObj.printResult(mutestate='off')
-else:
-	cvcobj.resObj.printResult()
+	cvcobj.resObj.trimResult(**argsdict)
+	if disp_mute != 'none':
+		cvcobj.resObj.printResult(mutestate='off')
+	else:
+		cvcobj.resObj.printResult()
