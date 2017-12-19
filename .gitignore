@@ -6,3 +6,4 @@ listedscores
 *.meta
 *.gz
 *.conf
+*.pyc
