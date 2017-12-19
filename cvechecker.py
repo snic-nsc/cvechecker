@@ -683,6 +683,9 @@ if cve != 'none':
 	argsdict['scores']=None
 	argsdict['products']=None
 
+if len(sys.argv) == 1:
+	aparser.print_help()
+	sys.exit(-1)
 cvcobj.readStore()
 cvcobj.resObj.trimResult(**argsdict)
 if disp_mute != 'none':
