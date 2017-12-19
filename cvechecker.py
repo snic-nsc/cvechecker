@@ -60,7 +60,6 @@ class Result:
 						self.resultdict[cveid]['affectedpackages'].append(pkg)
 
 			if rhproducts != None:
-				print 'came into addResult with non-NONE rhproducts'
 				for newprod,newpkg in rhproducts.iteritems():
 					try:
 						if not self.resultdict[cveid]['rhproducts'].__contains__(newprod):
@@ -70,9 +69,6 @@ class Result:
 							if not self.resultdict[cveid]['rhproducts'][newprod].__contains__(newpkg):
 								self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
 					except:
-						print 'exception encountered. rhproddict='
-						print rhproddict
-						print type(self.resultdict[cveid]['rhproducts'])
 						raise
 
 			if affectedproducts != None:
@@ -457,8 +453,7 @@ class CVECheck:
 					exceptioncount+=1
 					raise
 					continue
-		print 'exceptioncount is %d'%exceptioncount
-		print idxcount,basescorex,descx,datex
+		#print idxcount,basescorex,descx,datex
 		print len(self.resObj.resultdict)
 		self.writeStore(self.vulnstore,self.resObj.resultdict)
 				
@@ -581,11 +576,8 @@ class CVECheck:
 			try:
 				self.writeStore(self.vulnstore,self.resObj.resultdict)
 			except:
-				print 'ran into our issue'
-				print type(self.resObj.resultdict)
-				for key, val in self.resObj.resultdict.iteritems():
-					print key,val
-				raise
+				print 'Fatal error writing output into local vuln store file'
+				sys.exit(-1)
 			return
 		else: # nothing to do here. resultdict has been initialized from vuln object directly, and there are no more changes.
 			return
