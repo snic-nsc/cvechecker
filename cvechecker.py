@@ -482,7 +482,7 @@ class CVECheck:
 			print 'packages|pkg1,pkg2,pkg3...'
 			sys.exit(-1)
 
-		aggregobj=list()
+		filelist=list()
 		for pkg in pkglist:
 			url=self.sources['redhat']
 			url+='?package=%s'%pkg
@@ -490,19 +490,24 @@ class CVECheck:
 				break
 			try:
 				cveintobj=json.load(urllib2.urlopen(url),object_pairs_hook=OrderedDict)
-				for entry in cveintobj:
-					aggregobj.append(entry)
-				self.writeStore(redhatjson,aggregobj)
+				#for entry in cveintobj:
+				#aggregobj.append(entry)
+				fn=pkg+'.json'
+				filelist.append(fn)
+				self.writeStore(fn,cveintobj)
 			except:
 				print 'cannot update CVEs for redhat packages; check internet connectivity.'
 				self.dontconnect=1
 
-		return(redhatjson)
+		return(filelist)
 
-	def readRedhatfiles(self,redhatjson):
-		retval=self.checkforChanges(fname=redhatjson)
-		if retval == 0: 
-			initstore=0
+	def readRedhatfiles(self,redhatjsonfilelist):
+		initstore=0
+		for redhatjson in redhatjsonfilelist:
+			retval=self.checkforChanges(fname=redhatjson)
+			if retval != 0: 
+				initstore=1
+
 			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
 			if retval == -1:
 				initstore=1
@@ -510,10 +515,12 @@ class CVECheck:
 			initstore=1
 
 		if initstore == 1:
-			rjobj=OrderedDict()	
-			retval,rjobj=self.readStore(redhatjson,rjobj)
-			if retval != 0:
-				sys.exit(-1)
+			for redhatjson in redhatjsonfilelist:	
+				rjobj=OrderedDict()
+				retval,rjobj=self.readStore(redhatjson,rjobj)
+				if retval != 0:
+					sys.exit(-1)
+
 			for rj in rjobj:
 				inputs=dict()
 				inputs['cveid']=None
@@ -567,11 +574,12 @@ class CVECheck:
 						try:
 							apdict[self.rhproducts[pstate['product_name']]]=pstate['package']
 						except:
-							print 'didnt find product %s'%pstate['product_name']
 							apdict[pstate['product_name']]=pstate['package']
 					inputs['rhproducts']=apdict
 
 				self.resObj.addResult(**inputs)
+
+
 			try:
 				self.writeStore(self.vulnstore,self.resObj.resultdict)
 			except:
@@ -596,7 +604,6 @@ class CVECheck:
 
 	def checkforChanges(self,url=None,fname=None):
 		if url != None:
-
 			try:
 				urlobj = urllib.URLopener()
 				urlobj.retrieve(url,fname)
@@ -631,12 +638,12 @@ class CVECheck:
 			with open('sha256sums','w') as outfile:
 				for file in cksums:
 					outfile.write("%s %s\n"%(cksums[file],file))
-				return(0)
+				return(1)
 
 	def updateStore(self):
 		#first RedHat
-		jsonfile=self.updatefromRedhat(self.sources['redhat'])
-		self.readRedhatfiles(jsonfile)
+		jsonfilelist=self.updatefromRedhat(self.sources['redhat'])
+		self.readRedhatfiles(jsonfilelist)
 		#now NVD
 		retval,channelinfo=self.updatefromNVD()
 		self.readNVDfiles(channelinfo,retval)
