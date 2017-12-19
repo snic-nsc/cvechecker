@@ -609,13 +609,12 @@ class CVECheck:
 		self.readNVDfiles(channelinfo,retval)
 
 	def updateStore(self):
-		for key, val in self.sources.iteritems():
-			if key == 'redhat':
-				jsonfile=self.updatefromRedhat(val)
-				self.readRedhatfiles(jsonfile)
-			if key == 'nvd':
-				retval,channelinfo=self.updatefromNVD()
-				self.readNVDfiles(channelinfo,retval)
+		#first RedHat
+		jsonfile=self.updatefromRedhat(self.sources['redhat'])
+		self.readRedhatfiles(jsonfile)
+		#now NVD
+		retval,channelinfo=self.updatefromNVD()
+		self.readNVDfiles(channelinfo,retval)
 
 	def readJson(self,jsonfile,jsonobj):
 		try:
