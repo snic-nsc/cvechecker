@@ -8,6 +8,7 @@ import simplejson as json
 from numbers import Number
 import socket
 import time
+import datetime
 import urllib,urllib2
 import gzip,os
 
@@ -27,7 +28,7 @@ class Result:
 		self.scoredefs['Critical']={'high':10.0, 'low':9.0}
 		self.scoredefs['Missing']={'high':11.0, 'low':11.0}
 	
-	def addResult(self, cveid, cveurl, cvescore, affectedpackages, rhproducts, affectedproducts,descriptions,details, mitigation, nvddescriptions):
+	def addResult(self, cveid, cveurl, cvescore, affectedpackages, rhproducts, affectedproducts,descriptions,details, mitigation, nvddescriptions, lastmodifieddate):
 		if self.resultdict.__contains__(cveid):
 			if descriptions != None:
 				self.resultdict[cveid]['descriptions']=descriptions
@@ -39,7 +40,20 @@ class Result:
 				self.resultdict[cveid]['nvddescriptions']=nvddescriptions
 			if cvescore != None: 
 				self.resultdict[cveid]['score']=cvescore
-			
+			if lastmodifieddate != None:
+				self.resultdict[cveid]['lastmodifieddate']=lastmodifieddate
+				if self.resultdict[cveid]['muteddate'] != "":
+					try:
+						mtdstr=self.resultdict[cveid]['muteddate']
+						mtdobj=datetime.datetime.strptime(mtdstr,'%Y-%m-%d %H:%M')
+						modifdobj=datetime.datetime.strptime(lastmodifieddate,'%Y-%m-%d %H:%M')
+						if modifobj > mtobj:
+							self.resultdict[cveid]['muteddate']=''
+							self.resultdict[cveid]['mute']='off'
+					except:
+						print 'Exception in handling dates'
+						raise
+				
 			if affectedpackages != None:			 
 				for pkg in affectedpackages:
 					if not self.resultdict[cveid]['affectedpackages'].__contains__(pkg):
@@ -89,6 +103,7 @@ class Result:
 			if cveurl != None:
 				self.resultdict[cveid]['url']=cveurl
 			self.resultdict[cveid]['mute']='off'
+			self.resultdict[cveid]['muteddate']=''
 			if affectedpackages != None:
 				self.resultdict[cveid]['affectedpackages']=affectedpackages
 			if affectedproducts != None:				
@@ -101,6 +116,8 @@ class Result:
 				self.resultdict[cveid]['rhproducts']=rhproducts
 			if details != None:
 				self.resultdict[cveid]['details']=details
+			if lastmodifieddate != None:
+				self.resultdict[cveid]['lastmodifieddate']=lastmodifieddate
 			return
 
 	def trimResult(self, products=None, packages=None ,scores=None, cves=None, mute='none'):
@@ -161,6 +178,10 @@ class Result:
 			for entry in newresultdict:
 				newresultdict[entry]['mute']=mute
 				self.resultdict[entry]['mute']=mute
+				dtobj=datetime.datetime.utcnow()
+				dtstr=datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
+				newresultdict[entry]['muteddate']=dtstr
+				self.resultdict[entry]['muteddate']=dtstr
 
 			with codecs.open('vulnstore.json','w','utf-8') as outfile:
 				json.dump(self.resultdict,outfile)
@@ -374,6 +395,7 @@ class CVECheck:
 		idxcount=0
 		basescorex=0
 		descx=0
+		datex=0
 		
 		for channel in channelinfo:
 			pobj=dict()
@@ -390,6 +412,7 @@ class CVECheck:
 				inputs['details']=None
 				inputs['mitigation']=None
 				inputs['nvddescriptions']=list()
+				inputs['lastmodifieddate']=None
 				try:
 					inputs['cveid']=cveitem['cve']['CVE_data_meta']['ID']
 				except:
@@ -404,7 +427,13 @@ class CVECheck:
 						inputs['nvddescriptions'].append(desc['value'])
 				except:
 					descx+=1
-					continue
+				try:
+					rdstr=cveitem['lastModifiedDate']
+					dtobj=datetime.datetime.strptime(rdstr,'%Y-%m-%dT%H:%MZ')
+					dtstr=datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
+					inputs['lastmodifieddate']=dtstr
+				except:
+					datex+=1
 				try:
 					vendor_list=cveitem['cve']['affects']['vendor']['vendor_data']
 					for vendor in vendor_list:
