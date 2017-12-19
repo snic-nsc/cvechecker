@@ -194,6 +194,7 @@ class Result:
 		pkglist=list()
 		scorelist=list()
 		rhproddict=dict()
+		affectedproducts=dict()
 		mutecount=0
 		for key,val in self.resultdict.iteritems():
 			if self.resultdict[key]['mute'] == mutestate:
@@ -216,6 +217,16 @@ class Result:
 						continue
 					if not rhproddict[plt].__contains__(pkg):
 						rhproddict[plt].append(pkg)
+			for vendor,proddict in val['affectedproducts'].iteritems():
+				if not affectedproducts.__contains__(vendor):
+					affectedproducts[vendor]=dict()
+					
+				for prod,prodlist in proddict.iteritems():
+					if not affectedproducts[vendor].__contains__(prod):
+						affectedproducts[vendor][prod]=list()
+					for listitem in prodlist:
+						if not affectedproducts[vendor][prod].__contains__(listitem):
+							affectedproducts[vendor][prod].append(listitem)
 
 		if len(self.resultdict)!= 0 and len(self.resultdict)>mutecount:
 
@@ -233,7 +244,24 @@ class Result:
 				for pkg in pkgs:
 					print pkg
 				print ""
+			print "----------------"
+			print "Info from NVD"
+			print "----------------"
+			print "Affected Products"
+			print "-----------------"
+			for vendor,proddict in affectedproducts.iteritems():
+				print 'Vendor: %s'%vendor
+				for prod,prodlist in proddict.iteritems():
+					print 'Product: %s'%prod
+					print "-------"
+					print ""
+					print 'Affected Versions'
+					print "-----------------"
+					for version in prodlist:
+						print version
+					print ""
 
+			print ""
 			print "\nCVE Details"
 			print "-----------"
 			for cve in cvelist:
