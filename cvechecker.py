@@ -254,16 +254,13 @@ class CVEDetails:
 		
 class CVECheck:
 	def __init__(self):
-		self.sources=OrderedDict()
+		self.sources=dict()
 		self.resObj=Result()
-		self.fallback=dict()
 		self.sources['redhat']='https://access.redhat.com/labs/securitydataapi/cve.json'
-		self.sources['nvd']='thisdoesntreallymatter'
-		self.fallback['redhat-cve.json']='redhat-cve.json.tmpl'
 		self.vulnstore='vulnstore.json'
 		self.vulnobj=OrderedDict()
 		self.cksumfile='sha256sums'
-		self.noconnectivity=0
+		self.dontconnect=0
 		self.rhproducts=dict()
 		self.rhproducts['Red Hat Enterprise Linux 5']='RHEL5' 
 		self.rhproducts['Red Hat Enterprise Linux 6']='RHEL6' 
@@ -339,7 +336,7 @@ class CVECheck:
 					sys.exit(-1)
 		except:
 			print "Could not fetch NVD metadata files; check internet connectivity. Your CVE store could not be updated."
-			self.noconnectivity=1
+			self.dontconnect=1
 			#no metadata files. read the local nvd files
 			try:
 				for channel in channelinfo:
@@ -443,7 +440,7 @@ class CVECheck:
 				raise
 			pkglist=pkgline.split('|')[1].split('\n')[0].split(',')
 			if pkglist[0] == '':
-				raise
+				raise`
 		except:
 			print 'Please specify packages you wish to query CVEs for, in a file called advancedcveinfolist, containing a line in this format'
 			print 'packages|pkg1,pkg2,pkg3...'
@@ -453,7 +450,7 @@ class CVECheck:
 		for pkg in pkglist:
 			url=self.sources['redhat']
 			url+='?package=%s'%pkg
-			if self.noconnectivity == 1:
+			if self.dontconnect == 1:
 				break
 			try:
 				cveintobj=json.load(urllib2.urlopen(url),object_pairs_hook=OrderedDict)
@@ -462,7 +459,7 @@ class CVECheck:
 				self.writeStore(redhatjson,aggregobj)
 			except:
 				print 'cannot update CVEs for redhat packages; check internet connectivity.'
-				self.noconnectivity=1
+				self.dontconnect=1
 
 		return(redhatjson)
 
@@ -503,7 +500,7 @@ class CVECheck:
 
 				if inputs['cvescore'] == None:
 					inputs['cvescore']=11 #value for missing score
-				if self.noconnectivity == 0:
+				if self.dontconnect == 0:
 					try:
 						print 'pulling down %s'%(inputs['cveurl'])
 						cveobj=json.load(urllib2.urlopen(inputs['cveurl']))
@@ -598,8 +595,13 @@ class CVECheck:
 				for file in cksums:
 					outfile.write("%s %s\n"%(cksums[file],file))
 				return(0)
+
 	def readStore(self):
-		pass
+		self.dontconnect=1
+		retval,self.resObj.resultdict=self.readJson(self.vulnstore,self.resObj.resultdict)
+		if retval == -1:
+			print 'Trouble initializing from local vuln store. Aborting.'
+			sys.exit(-1)
 
 	def updateStore(self):
 		for key, val in self.sources.iteritems():
