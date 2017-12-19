@@ -337,9 +337,9 @@ class CVECheck:
 					print "Catastrophic failure. FS error?"
 					sys.exit(-1)
 		except:
-			#if self.dontconnect == 0:
-			print "Could not fetch NVD metadata files; check internet connectivity. Your CVE store could not be updated."
-			self.dontconnect=1
+			if self.dontconnect == 0:
+				print "Could not fetch NVD metadata files; check internet connectivity. Your CVE store could not be updated."
+				self.dontconnect=1
 			#no metadata files. read the local nvd files
 			try:
 				for channel in channelinfo:
