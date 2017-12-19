@@ -367,7 +367,7 @@ class CVECheck:
 			retval=1
 		if retval == 0:
 			#print 'Nothing has changed from the last invocation. Will read from local store and proceed'
-			retval,self.resObj.resultdict=self.readJson(self.vulnstore,self.resObj.resultdict)
+			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
 			return
 		
 		exceptioncount=0
@@ -377,7 +377,7 @@ class CVECheck:
 		
 		for channel in channelinfo:
 			pobj=dict()
-			retval,pobj=self.readJson(channel,pobj)
+			retval,pobj=self.readStore(channel,pobj)
 			for cveitem in pobj['CVE_Items']:
 				inputs=dict()
 				inputs['cveid']=None
@@ -470,7 +470,7 @@ class CVECheck:
 		retval=self.checkforChanges(fname=redhatjson)
 		if retval == 0: 
 			initstore=0
-			retval,self.resObj.resultdict=self.readJson(self.vulnstore,self.resObj.resultdict)
+			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
 			if retval == -1:
 				initstore=1
 		else:
@@ -478,7 +478,7 @@ class CVECheck:
 
 		if initstore == 1:
 			rjobj=OrderedDict()	
-			retval,rjobj=self.readJson(redhatjson,rjobj)
+			retval,rjobj=self.readStore(redhatjson,rjobj)
 			if retval != 0:
 				sys.exit(-1)
 			for rj in rjobj:
@@ -599,15 +599,6 @@ class CVECheck:
 					outfile.write("%s %s\n"%(cksums[file],file))
 				return(0)
 
-	def readStore(self):
-		self.dontconnect=1
-		retval,self.resObj.resultdict=self.readJson(self.vulnstore,self.resObj.resultdict)
-		if retval == -1:
-			print 'Trouble initializing from local vuln store. Aborting.'
-			sys.exit(-1)
-		retval,channelinfo=self.updatefromNVD()
-		self.readNVDfiles(channelinfo,retval)
-
 	def updateStore(self):
 		#first RedHat
 		jsonfile=self.updatefromRedhat(self.sources['redhat'])
@@ -616,7 +607,7 @@ class CVECheck:
 		retval,channelinfo=self.updatefromNVD()
 		self.readNVDfiles(channelinfo,retval)
 
-	def readJson(self,jsonfile,jsonobj):
+	def readStore(self,jsonfile,jsonobj):
 		try:
 			with codecs.open(jsonfile,'r','utf-8') as infile:
 				jsonobj=json.load(infile)
@@ -685,7 +676,12 @@ if cve != 'none':
 if len(sys.argv) == 1:
 	aparser.print_help()
 	sys.exit(-1)
-cvcobj.readStore()
+
+retval,cvcobj.resObj.resultdict=cvcobj.readStore(cvcobj.vulnstore,cvcobj.resObj.resultdict)
+if retval == -1:
+	print 'Trouble initializing from local vuln store. Aborting.'
+	sys.exit(-1)
+
 cvcobj.resObj.trimResult(**argsdict)
 if disp_mute != 'none':
 	cvcobj.resObj.printResult(mutestate='off')
