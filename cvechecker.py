@@ -503,82 +503,80 @@ class CVECheck:
 
 	def readRedhatfiles(self,redhatjsonfilelist):
 		initstore=0
+		toupdate=list()
 		for redhatjson in redhatjsonfilelist:
 			retval=self.checkforChanges(fname=redhatjson)
 			if retval != 0: 
 				initstore=1
+				topupdate.append(redhatjson)
 
-			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
-			if retval == -1:
-				initstore=1
-		else:
+		retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
+		if retval == -1:
 			initstore=1
 
 		if initstore == 1:
-			for redhatjson in redhatjsonfilelist:	
+			for redhatjson in toupdate:
 				rjobj=OrderedDict()
 				retval,rjobj=self.readStore(redhatjson,rjobj)
 				if retval != 0:
 					sys.exit(-1)
-
-			for rj in rjobj:
-				inputs=dict()
-				inputs['cveid']=None
-				inputs['cveurl']=None
-				inputs['cvescore']=None
-				inputs['affectedpackages']=list()
-				inputs['affectedproducts']=None
-				inputs['rhproducts']=None
-				inputs['descriptions']=list()
-				inputs['details']=None
-				inputs['mitigation']=None
-				inputs['nvddescriptions']=None
-				inputs['lastmodifieddate']=None
-				try:
-					inputs['cveid']=rj['CVE']
-					inputs['cveurl']=rj['resource_url']
-					inputs['affectedpackages']=rj['affected_packages']
-					inputs['cvescore']=rj['cvss3_score']
-				except:
-					moveon=1
-
-				if inputs['cvescore'] == None:
-					inputs['cvescore']=11 #value for missing score
-				if self.dontconnect == 0:
+				for rj in rjobj:
+					inputs=dict()
+					inputs['cveid']=None
+					inputs['cveurl']=None
+					inputs['cvescore']=None
+					inputs['affectedpackages']=list()
+					inputs['affectedproducts']=None
+					inputs['rhproducts']=None
+					inputs['descriptions']=list()
+					inputs['details']=None
+					inputs['mitigation']=None
+					inputs['nvddescriptions']=None
+					inputs['lastmodifieddate']=None
 					try:
-						print 'pulling down %s'%(inputs['cveurl'])
-						cveobj=json.load(urllib2.urlopen(inputs['cveurl']))
+						inputs['cveid']=rj['CVE']
+						inputs['cveurl']=rj['resource_url']
+						inputs['affectedpackages']=rj['affected_packages']
+						inputs['cvescore']=rj['cvss3_score']
 					except:
-						print 'Failure to fetch CVE details. All data fields may not be available'
+						moveon=1
 
-					#RedHat CVE files are very inconsistent with fields. 
-					try:
-						inputs['details']=cveobj['details']
-					except:
-						donothing=1
-					try:
-						inputs['descriptions'].append(cveobj['bugzilla']['description'])
-					except:
-						inputs['descriptions'] = None
-					try:
-						intputs['mitigation']=cveobj['mitigation']
-					except:
-						donothing=1
-
-					apdict=OrderedDict()
-					for pstate in cveobj['affected_release']:
-						if not type(pstate) == dict:
-							continue
-						if not pstate.__contains__('package'):
-							continue
+					if inputs['cvescore'] == None:
+						inputs['cvescore']=11 #value for missing score
+					if self.dontconnect == 0:
 						try:
-							apdict[self.rhproducts[pstate['product_name']]]=pstate['package']
+							print 'pulling down %s'%(inputs['cveurl'])
+							cveobj=json.load(urllib2.urlopen(inputs['cveurl']))
 						except:
-							apdict[pstate['product_name']]=pstate['package']
-					inputs['rhproducts']=apdict
+							print 'Failure to fetch CVE details. All data fields may not be available'
 
-				self.resObj.addResult(**inputs)
+						#RedHat CVE files are very inconsistent with fields.
+						try:
+							inputs['details']=cveobj['details']
+						except:
+							donothing=1
+						try:
+							inputs['descriptions'].append(cveobj['bugzilla']['description'])
+						except:
+							inputs['descriptions'] = None
+						try:
+							intputs['mitigation']=cveobj['mitigation']
+						except:
+							donothing=1
 
+						apdict=OrderedDict()
+						for pstate in cveobj['affected_release']:
+							if not type(pstate) == dict:
+								continue
+							if not pstate.__contains__('package'):
+								continue
+							try:
+								apdict[self.rhproducts[pstate['product_name']]]=pstate['package']
+							except:
+								apdict[pstate['product_name']]=pstate['package']
+						inputs['rhproducts']=apdict
+
+					self.resObj.addResult(**inputs)
 
 			try:
 				self.writeStore(self.vulnstore,self.resObj.resultdict)
