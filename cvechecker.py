@@ -508,7 +508,7 @@ class CVECheck:
 			retval=self.checkforChanges(fname=redhatjson)
 			if retval != 0: 
 				initstore=1
-				topupdate.append(redhatjson)
+				toupdate.append(redhatjson)
 
 		retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
 		if retval == -1:
