@@ -367,7 +367,7 @@ class CVECheck:
 			retval=1
 		if retval == 0:
 			#print 'Nothing has changed from the last invocation. Will read from local store and proceed'
-			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
+			retval,self.resObj.resultdict=self.readJson(self.vulnstore,self.resObj.resultdict)
 			return
 		
 		exceptioncount=0
@@ -377,7 +377,7 @@ class CVECheck:
 		
 		for channel in channelinfo:
 			pobj=dict()
-			retval,pobj=self.readStore(channel,pobj)
+			retval,pobj=self.readJson(channel,pobj)
 			for cveitem in pobj['CVE_Items']:
 				inputs=dict()
 				inputs['cveid']=None
@@ -470,7 +470,7 @@ class CVECheck:
 		retval=self.checkforChanges(fname=redhatjson)
 		if retval == 0: 
 			initstore=0
-			retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
+			retval,self.resObj.resultdict=self.readJson(self.vulnstore,self.resObj.resultdict)
 			if retval == -1:
 				initstore=1
 		else:
@@ -478,7 +478,7 @@ class CVECheck:
 
 		if initstore == 1:
 			rjobj=OrderedDict()	
-			retval,rjobj=self.readStore(redhatjson,rjobj)
+			retval,rjobj=self.readJson(redhatjson,rjobj)
 			if retval != 0:
 				sys.exit(-1)
 			for rj in rjobj:
@@ -598,6 +598,8 @@ class CVECheck:
 				for file in cksums:
 					outfile.write("%s %s\n"%(cksums[file],file))
 				return(0)
+	def readStore(self):
+		pass
 
 	def updateStore(self):
 		for key, val in self.sources.iteritems():
@@ -608,7 +610,7 @@ class CVECheck:
 				retval,channelinfo=self.updatefromNVD()
 				self.readNVDfiles(channelinfo,retval)
 
-	def readStore(self,jsonfile,jsonobj):
+	def readJson(self,jsonfile,jsonobj):
 		try:
 			with codecs.open(jsonfile,'r','utf-8') as infile:
 				jsonobj=json.load(infile)
