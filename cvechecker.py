@@ -302,6 +302,8 @@ class CVECheck:
 
 		cksums=dict()
 		try:
+			if self.dontconnect == 1:
+				raise
 			for channel in channelinfo:
 				urlobj.retrieve(channelinfo[channel]['metaurl'],channelinfo[channel]['metafname'])
 				with open(channelinfo[channel]['metafname'],'r') as inp:
@@ -335,6 +337,7 @@ class CVECheck:
 					print "Catastrophic failure. FS error?"
 					sys.exit(-1)
 		except:
+			#if self.dontconnect == 0:
 			print "Could not fetch NVD metadata files; check internet connectivity. Your CVE store could not be updated."
 			self.dontconnect=1
 			#no metadata files. read the local nvd files
@@ -440,7 +443,7 @@ class CVECheck:
 				raise
 			pkglist=pkgline.split('|')[1].split('\n')[0].split(',')
 			if pkglist[0] == '':
-				raise`
+				raise
 		except:
 			print 'Please specify packages you wish to query CVEs for, in a file called advancedcveinfolist, containing a line in this format'
 			print 'packages|pkg1,pkg2,pkg3...'
@@ -602,6 +605,8 @@ class CVECheck:
 		if retval == -1:
 			print 'Trouble initializing from local vuln store. Aborting.'
 			sys.exit(-1)
+		retval,channelinfo=self.updatefromNVD()
+		self.readNVDfiles(channelinfo,retval)
 
 	def updateStore(self):
 		for key, val in self.sources.iteritems():
@@ -629,6 +634,7 @@ aparser.add_argument("-c", "--cve", type=str, default='none',help='output inform
 aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical".') #lookup by severity level
 aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by package, e.g. httpd
 aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one or more filters, and must include -pkg') #mark results as seen or unseen
+aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the vulnerability store. Should be run regularly, preferably from a cron.') #mark results as seen or unseen
 aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. Any other options are ignored, when combined with this option.') #mark results as seen or unseen
 
 args=aparser.parse_args()
@@ -637,6 +643,7 @@ severity=args.severity
 product=args.product
 mute=args.mute
 disp_mute=args.disp_mute
+update=args.update
 
 argsdict=dict()
 argsdict['scores']=None
@@ -666,13 +673,17 @@ if mute != 'none':
 		sys.exit(-1)
 	argsdict['mute']=mute
 
-cvcobj.updateStore()
+
+if update != 'none':
+	cvcobj.updateStore()
+	sys.exit(0)
 
 if cve != 'none':
 	argsdict['cves']=cve.split(',')
 	argsdict['scores']=None
 	argsdict['products']=None
 
+cvcobj.readStore()
 cvcobj.resObj.trimResult(**argsdict)
 if disp_mute != 'none':
 	cvcobj.resObj.printResult(mutestate='off')
