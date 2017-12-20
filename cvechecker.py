@@ -17,6 +17,24 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 socket.setdefaulttimeout(30)
 
+class CVE:
+    def __init__(self):
+        self.cveid=None
+        self.cveurl=None
+        self.cvescore=None
+        self.affectedpackages=list()
+        self.rhproducts=dict()
+        self.affectedproducts=dict()
+        self.descriptions=list()
+        self.details=list()
+        self.mitigation=None
+        self.nvddescriptions=list()
+        self.lastmodifieddate=None
+        self.isnew=True
+
+    def update_cve(self,cveid, cveurl,cvescore,affectedpackages,rhproducts,affectedproducts,descriptions,details,mitigation,nvddescriptions,lastmodifieddate):
+        pass
+
 class Result:
     def __init__(self):
         self.resultdict=dict()
