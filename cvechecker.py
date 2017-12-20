@@ -4,7 +4,7 @@ import sys
 import argparse
 from collections import OrderedDict
 from hashlib import sha256
-import json
+import simplejson as json
 from numbers import Number
 import socket
 import time
@@ -462,7 +462,7 @@ class CVECheck:
                     continue
         #print idxcount,basescorex,descx,datex
         print len(self.resObj.resultdict)
-        self.writeStore(self.vulnstore,self.resObj.resultdict)
+        self.write_store(self.vulnstore,self.resObj.resultdict)
                 
     def update_from_redhat(self,url):
         redhatjson='redhat-cve.json'
@@ -494,7 +494,7 @@ class CVECheck:
                 cveintobj=json.load(urllib.urlopen(url),object_pairs_hook=OrderedDict)
                 fn=pkg+'.json'
                 filelist.append(fn)
-                self.writeStore(fn,cveintobj)
+                self.write_store(fn,cveintobj)
             except:
                 print 'cannot update CVEs for redhat packages; check internet connectivity.'
                 self.dontconnect=True
@@ -577,7 +577,7 @@ class CVECheck:
                     self.resObj.add_result(**inputs)
 
             try:
-                self.writeStore(self.vulnstore,self.resObj.resultdict)
+                self.write_store(self.vulnstore,self.resObj.resultdict)
             except:
                 print 'Fatal error writing output into local vuln store file'
                 sys.exit(-1)
@@ -649,7 +649,7 @@ class CVECheck:
             return(-1,jsonobj)
         return(0,jsonobj)
 
-    def writeStore(self,jsonfile, jsonobj):
+    def write_store(self,jsonfile, jsonobj):
         with codecs.open(jsonfile,'w','utf-8') as outfile:
             json.dump(jsonobj,outfile)
 
