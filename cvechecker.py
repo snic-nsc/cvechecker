@@ -132,29 +132,29 @@ class Result:
                     #this entry fails all specified score requirements
                     continue
             if packages != None:
-                found=0
+                found=False
                 for package in packages:
                     for affpkg in val['affectedpackages']:
                         if affpkg.startswith(package):
-                            found=1
+                            found=True
                             break
-                    if found == 1:
+                    if found:
                         break
-                if found == 0:
+                if not found:
                     continue
             if products != None:
-                found=0
+                found=False
                 for product in products:
                     for vendor,proddict in val['affectedproducts'].iteritems():
                         for prodname, versionlist in proddict.iteritems():
                             if prodname.startswith(product):
-                                found=1
+                                found=True
                                 break
-                        if found == 1:
+                        if found:
                             break
-                    if found == 1:
+                    if found:
                         break
-                if found == 0:
+                if not found:
                     continue
             newresultdict[key]=val
 
@@ -295,7 +295,7 @@ class CVECheck:
         self.vulnstore='vulnstore.json'
         self.vulnobj=OrderedDict()
         self.cksumfile='sha256sums'
-        self.dontconnect=0
+        self.dontconnect=False
         self.rhproducts=dict()
         self.rhproducts['Red Hat Enterprise Linux 5']='RHEL5'
         self.rhproducts['Red Hat Enterprise Linux 6']='RHEL6'
@@ -329,7 +329,7 @@ class CVECheck:
 
         cksums=dict()
         try:
-            if self.dontconnect == 1:
+            if self.dontconnect:
                 raise
             for channel in channelinfo:
                 urlobj.retrieve(channelinfo[channel]['metaurl'],channelinfo[channel]['metafname'])
@@ -367,9 +367,9 @@ class CVECheck:
                     print "Catastrophic failure. FS error?"
                     sys.exit(-1)
         except:
-            if self.dontconnect == 0:
+            if not self.dontconnect:
                 print "Could not fetch NVD metadata files; check internet connectivity. Your CVE store could not be updated."
-                self.dontconnect=1
+                self.dontconnect=True
             #no metadata files. read the local nvd files
             try:
                 for channel in channelinfo:
@@ -390,7 +390,7 @@ class CVECheck:
     def read_nvd_files(self,channelinfo,retval):
         try:
             with open('vulnstore.json','r') as inp:
-                donothing=1
+                pass
         except:
             print 'No vuln store file found. Initializing from whatever we have.'
             retval=1
@@ -490,7 +490,7 @@ class CVECheck:
         for pkg in pkglist:
             url=self.sources['redhat']
             url+='?package=%s'%pkg
-            if self.dontconnect == 1:
+            if self.dontconnect:
                 break
             try:
                 cveintobj=json.load(urllib2.urlopen(url),object_pairs_hook=OrderedDict)
@@ -499,7 +499,7 @@ class CVECheck:
                 self.writeStore(fn,cveintobj)
             except:
                 print 'cannot update CVEs for redhat packages; check internet connectivity.'
-                self.dontconnect=1
+                self.dontconnect=True
         return(filelist)
 
     def read_redhat_files(self,redhatjsonfilelist):
@@ -543,7 +543,7 @@ class CVECheck:
 
                     if inputs['cvescore'] == None:
                         inputs['cvescore']=11 #value for missing score
-                    if self.dontconnect == 0:
+                    if not self.dontconnect:
                         try:
                             print 'pulling down %s'%(inputs['cveurl'])
                             cveobj=json.load(urllib2.urlopen(inputs['cveurl']))
@@ -554,7 +554,7 @@ class CVECheck:
                         try:
                             inputs['details']=cveobj['details']
                         except:
-                            donothing=1
+                            pass
                         try:
                             inputs['descriptions'].append(cveobj['bugzilla']['description'])
                         except:
@@ -562,7 +562,7 @@ class CVECheck:
                         try:
                             intputs['mitigation']=cveobj['mitigation']
                         except:
-                            donothing=1
+                            pass
 
                         apdict=OrderedDict()
                         for pstate in cveobj['affected_release']:
