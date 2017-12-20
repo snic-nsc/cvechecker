@@ -117,11 +117,8 @@ class Result:
 			return
 
 	def trimResult(self, products=None, packages=None ,scores=None, cves=None, mute='none'):
-
-
 		newresultdict=dict()
 		for key, val in self.resultdict.iteritems():
-
 			if cves != None:
 				match=0
 				for cve in cves:
@@ -129,7 +126,6 @@ class Result:
 						match=1
 				if match == 0:
 					continue
-
 			if scores != None:
 				numfails=0
 				for score in scores:
@@ -139,7 +135,6 @@ class Result:
 				if numfails == len(scores):
 					#this entry fails all specified score requirements
 					continue
-
 			if packages != None:
 				found=0
 				for package in packages:
@@ -151,7 +146,6 @@ class Result:
 						break
 				if found == 0:
 					continue
-
 			if products != None:
 				found=0
 				for product in products:
@@ -166,7 +160,6 @@ class Result:
 						break
 				if found == 0:
 					continue
-
 			newresultdict[key]=val
 
 		#outside the loop
@@ -188,7 +181,6 @@ class Result:
 		self.resultdict=newresultdict
 
 	def printResult(self, mutestate='on'):
-		
 		cvelist=list()
 		proddict=OrderedDict()
 		pkglist=list()
@@ -196,19 +188,20 @@ class Result:
 		rhproddict=dict()
 		affectedproducts=dict()
 		mutecount=0
+
 		for key,val in self.resultdict.iteritems():
 			if self.resultdict[key]['mute'] == mutestate:
 				mutecount+=1
 				continue
 
 			scorelist.append(val['score'])
-
 			if not cvelist.__contains__(key):
 				cvelist.append(key)
-				
+
 			for pkg in val['affectedpackages']:
 				if not pkglist.__contains__(pkg):
 					pkglist.append(pkg)
+
 			if len(val['rhproducts']) != 0:
 				for plt,pkg in val['rhproducts'].iteritems():
 					if not rhproddict.__contains__(plt):
@@ -217,13 +210,15 @@ class Result:
 						continue
 					if not rhproddict[plt].__contains__(pkg):
 						rhproddict[plt].append(pkg)
+
 			for vendor,proddict in val['affectedproducts'].iteritems():
 				if not affectedproducts.__contains__(vendor):
 					affectedproducts[vendor]=dict()
-					
+
 				for prod,prodlist in proddict.iteritems():
 					if not affectedproducts[vendor].__contains__(prod):
 						affectedproducts[vendor][prod]=list()
+
 					for listitem in prodlist:
 						if not affectedproducts[vendor][prod].__contains__(listitem):
 							affectedproducts[vendor][prod].append(listitem)
@@ -296,11 +291,6 @@ class Result:
 				outfile.write('%s\n'%cve)
 			
 
-class CVEDetails:
-	def __init__(self):
-		self.name=''
-		self.packages=list()
-		
 class CVECheck:
 	def __init__(self):
 		self.sources=dict()
@@ -358,10 +348,12 @@ class CVECheck:
 				with open(channelinfo[channel]['metafname'],'r') as inp:
 					lines=inp.readlines()
 				cksum=''
+
 				for line in lines:
 					if line.startswith('sha256'):
 						cksum=(line.split(':')[1].split('\r')[0]).lower()
 						break
+
 				if cksum == '':
 					raise
 				channelinfo[channel]['sha256sum']=cksum
@@ -378,6 +370,7 @@ class CVECheck:
 					with open(channel,'wb') as out:
 						out.write(fcontent)
 					os.remove(channelinfo[channel]['zip'])
+
 				#insert into sha256sums if lines not present
 				retval=self.checkforChanges(fname=channel)
 				if retval != 0:
@@ -468,10 +461,12 @@ class CVECheck:
 						if not inputs['affectedproducts'].__contains__(vendor['vendor_name']):
 							inputs['affectedproducts'][vendor['vendor_name']]=dict()
 						prod_list=vendor['product']['product_data']
+
 						for prod in prod_list:
 							if not inputs['affectedproducts'][vendor['vendor_name']].__contains__(prod['product_name']):
 								inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']]=list()
 							version_list=prod['version']['version_data']
+
 							for version in version_list:
 								if not inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']].__contains__(version['version_value']):
 									inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']].append(version['version_value'])
@@ -513,15 +508,12 @@ class CVECheck:
 				break
 			try:
 				cveintobj=json.load(urllib2.urlopen(url),object_pairs_hook=OrderedDict)
-				#for entry in cveintobj:
-				#aggregobj.append(entry)
 				fn=pkg+'.json'
 				filelist.append(fn)
 				self.writeStore(fn,cveintobj)
 			except:
 				print 'cannot update CVEs for redhat packages; check internet connectivity.'
 				self.dontconnect=1
-
 		return(filelist)
 
 	def readRedhatfiles(self,redhatjsonfilelist):
@@ -532,7 +524,6 @@ class CVECheck:
 			if retval != 0: 
 				initstore=1
 				toupdate.append(redhatjson)
-
 		retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
 		if retval == -1:
 			initstore=1
