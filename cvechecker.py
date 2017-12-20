@@ -46,17 +46,13 @@ class Result:
             if lastmodifieddate != None:
                 self.resultdict[cveid]['lastmodifieddate']=lastmodifieddate
                 if self.resultdict[cveid]['muteddate'] != "":
-                    try:
-                        mtdstr=self.resultdict[cveid]['muteddate']
-                        mtdobj=datetime.datetime.strptime(mtdstr,'%Y-%m-%d %H:%M')
-                        modifdobj=datetime.datetime.strptime(lastmodifieddate,'%Y-%m-%d %H:%M')
-                        if modifdobj > mtdobj:
-                            self.resultdict[cveid]['muteddate']=''
-                            self.resultdict[cveid]['mute']='off'
-                    except:
-                        print 'Exception in handling dates'
-                        raise
-                
+                    mtdstr=self.resultdict[cveid]['muteddate']
+                    mtdobj=datetime.datetime.strptime(mtdstr,'%Y-%m-%d %H:%M')
+                    modifdobj=datetime.datetime.strptime(lastmodifieddate,'%Y-%m-%d %H:%M')
+                    if modifdobj > mtdobj:
+                        self.resultdict[cveid]['muteddate']=''
+                        self.resultdict[cveid]['mute']='off'
+                                    
             if affectedpackages != None:
                 for pkg in affectedpackages:
                     if not self.resultdict[cveid]['affectedpackages'].__contains__(pkg):
@@ -64,16 +60,13 @@ class Result:
 
             if rhproducts != None:
                 for newprod,newpkg in rhproducts.iteritems():
-                    try:
-                        if not self.resultdict[cveid]['rhproducts'].__contains__(newprod):
-                            self.resultdict[cveid]['rhproducts'][newprod]=list()
+                    if not self.resultdict[cveid]['rhproducts'].__contains__(newprod):
+                        self.resultdict[cveid]['rhproducts'][newprod]=list()
+                        self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
+                    else:
+                        if not self.resultdict[cveid]['rhproducts'][newprod].__contains__(newpkg):
                             self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
-                        else:
-                            if not self.resultdict[cveid]['rhproducts'][newprod].__contains__(newpkg):
-                                self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
-                    except:
-                        raise
-
+                    
             if affectedproducts != None:
                 for vendor,proddict in affectedproducts.iteritems():
                     if not self.resultdict[cveid]['affectedproducts'].__contains__(vendor):
@@ -384,9 +377,8 @@ class CVECheck:
                     if retval == -1:
                         raise
             except:
-                raise
                 print "Unable to read local nvd files. Execute initnvd.sh"
-                sys.exit(-1)
+                raise
             #this is the unupdated case. Local nvd files are available for reading
             return(0,channelinfo)
         #this is the potentially updated case. Local nvd files are available for reading
@@ -469,7 +461,6 @@ class CVECheck:
                     self.resObj.add_result(**inputs)
                 except:
                     exceptioncount+=1
-                    raise
                     continue
         #print idxcount,basescorex,descx,datex
         print len(self.resObj.resultdict)
