@@ -1,7 +1,8 @@
 #!/usr/bin/env python2
 import codecs
 import xml.etree.ElementTree as ET
-import sys,argparse
+import sys
+import argparse
 from collections import OrderedDict
 from hashlib import sha256
 import simplejson as json
@@ -9,8 +10,10 @@ from numbers import Number
 import socket
 import time
 import datetime
-import urllib,urllib2
-import gzip,os
+import urllib
+import urllib2
+import gzip
+import os
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
