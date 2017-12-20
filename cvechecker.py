@@ -728,7 +728,6 @@ def main():
             product='none'
         argsdict['mute']=mute
 
-
     if update != 'none':
         cvcobj.update_store()
         sys.exit(0)
@@ -748,6 +747,9 @@ def main():
             sys.exit(-1)
 
         cvcobj.resObj.trim_result(**argsdict)
+        if mute != 'none':
+            sys.exit(0)
+
         if disp_mute != 'none':
             cvcobj.resObj.print_result(mutestate='off')
         else:
