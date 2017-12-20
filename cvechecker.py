@@ -31,7 +31,7 @@ class Result:
         self.scoredefs['Critical']={'high':10.0, 'low':9.0}
         self.scoredefs['Missing']={'high':11.0, 'low':11.0}
     
-    def addResult(self, cveid, cveurl, cvescore, affectedpackages, rhproducts, affectedproducts,descriptions,details, mitigation, nvddescriptions, lastmodifieddate):
+    def add_result(self, cveid, cveurl, cvescore, affectedpackages, rhproducts, affectedproducts,descriptions,details, mitigation, nvddescriptions, lastmodifieddate):
         if self.resultdict.__contains__(cveid):
             if descriptions != None:
                 self.resultdict[cveid]['descriptions']=descriptions
@@ -119,7 +119,7 @@ class Result:
                 self.resultdict[cveid]['lastmodifieddate']=lastmodifieddate
             return
 
-    def trimResult(self, products=None, packages=None ,scores=None, cves=None, mute='none'):
+    def trim_result(self, products=None, packages=None ,scores=None, cves=None, mute='none'):
         newresultdict=dict()
         for key, val in self.resultdict.iteritems():
             if cves != None:
@@ -183,7 +183,7 @@ class Result:
                 json.dump(self.resultdict,outfile)
         self.resultdict=newresultdict
 
-    def printResult(self, mutestate='on'):
+    def print_result(self, mutestate='on'):
         cvelist=list()
         proddict=OrderedDict()
         pkglist=list()
@@ -309,15 +309,7 @@ class CVECheck:
         self.rhproducts['Red Hat Enterprise Linux 7']='RHEL7'
         self.rhproducts['Red Hat Enterprise Linux 8']='RHEL8'
 
-    def setupRef(self,refdict):
-        refdict['source']='local'
-        refdict['tense']='unspecified'
-        refdict['figureofspeech']='unspecified'
-        refdict['additionalattribute']='unspecified'
-        refdict['definitions']=list()
-        return refdict
-
-    def updatefromNVD(self):
+    def update_from_nvd(self):
         urlobj = urllib.URLopener()
         channelinfo=dict()
         try:
@@ -364,7 +356,7 @@ class CVECheck:
             #lets compare checksums
             changed=0
             for channel in channelinfo:
-                retval,sha256sum=self.computeChecksum(channel)
+                retval,sha256sum=self.compute_checksum(channel)
                 if sha256sum != channelinfo[channel]['sha256sum']:
                     print "Update available for %s"%channelinfo[channel]
                     urlobj.retrieve(channelinfo[channel]['url'],channelinfo[channel]['zip'])
@@ -375,7 +367,7 @@ class CVECheck:
                     os.remove(channelinfo[channel]['zip'])
 
                 #insert into sha256sums if lines not present
-                retval=self.checkforChanges(fname=channel)
+                retval=self.check_for_changes(fname=channel)
                 if retval != 0:
                     changed=1
                 if retval == -1:
@@ -388,7 +380,7 @@ class CVECheck:
             #no metadata files. read the local nvd files
             try:
                 for channel in channelinfo:
-                    retval=self.checkforChanges(fname=channel)
+                    retval=self.check_for_changes(fname=channel)
                     if retval == -1:
                         raise
             except:
@@ -403,7 +395,7 @@ class CVECheck:
         else:
             return(0,channelinfo)
 
-    def readNVDfiles(self,channelinfo,retval):
+    def read_nvd_files(self,channelinfo,retval):
         try:
             with open('vulnstore.json','r') as inp:
                 donothing=1
@@ -412,7 +404,7 @@ class CVECheck:
             retval=1
         if retval == 0:
             #print 'Nothing has changed from the last invocation. Will read from local store and proceed'
-            retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
+            retval,self.resObj.resultdict=self.read_store(self.vulnstore,self.resObj.resultdict)
             return
         
         exceptioncount=0
@@ -423,7 +415,7 @@ class CVECheck:
         
         for channel in channelinfo:
             pobj=dict()
-            retval,pobj=self.readStore(channel,pobj)
+            retval,pobj=self.read_store(channel,pobj)
             for cveitem in pobj['CVE_Items']:
                 inputs=dict()
                 inputs['cveid']=None
@@ -474,7 +466,7 @@ class CVECheck:
                                 if not inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']].__contains__(version['version_value']):
                                     inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']].append(version['version_value'])
                     
-                    self.resObj.addResult(**inputs)
+                    self.resObj.add_result(**inputs)
                 except:
                     exceptioncount+=1
                     raise
@@ -483,7 +475,7 @@ class CVECheck:
         print len(self.resObj.resultdict)
         self.writeStore(self.vulnstore,self.resObj.resultdict)
                 
-    def updatefromRedhat(self,url):
+    def update_from_redhat(self,url):
         redhatjson='redhat-cve.json'
         try:
             with open('advancedcveinfolist','r') as infile:
@@ -519,22 +511,22 @@ class CVECheck:
                 self.dontconnect=1
         return(filelist)
 
-    def readRedhatfiles(self,redhatjsonfilelist):
+    def read_redhat_files(self,redhatjsonfilelist):
         initstore=0
         toupdate=list()
         for redhatjson in redhatjsonfilelist:
-            retval=self.checkforChanges(fname=redhatjson)
+            retval=self.check_for_changes(fname=redhatjson)
             if retval != 0:
                 initstore=1
                 toupdate.append(redhatjson)
-        retval,self.resObj.resultdict=self.readStore(self.vulnstore,self.resObj.resultdict)
+        retval,self.resObj.resultdict=self.read_store(self.vulnstore,self.resObj.resultdict)
         if retval == -1:
             initstore=1
 
         if initstore == 1:
             for redhatjson in toupdate:
                 rjobj=OrderedDict()
-                retval,rjobj=self.readStore(redhatjson,rjobj)
+                retval,rjobj=self.read_store(redhatjson,rjobj)
                 if retval != 0:
                     sys.exit(-1)
                 for rj in rjobj:
@@ -593,7 +585,7 @@ class CVECheck:
                                 apdict[pstate['product_name']]=pstate['package']
                         inputs['rhproducts']=apdict
 
-                    self.resObj.addResult(**inputs)
+                    self.resObj.add_result(**inputs)
 
             try:
                 self.writeStore(self.vulnstore,self.resObj.resultdict)
@@ -604,7 +596,7 @@ class CVECheck:
         else: # nothing to do here. resultdict has been initialized from vuln object directly, and there are no more changes.
             return
     
-    def computeChecksum(self,fname):
+    def compute_checksum(self,fname):
         try:
             sha256sum=''
             with open(fname,'rb') as infile:
@@ -614,7 +606,7 @@ class CVECheck:
             return(-1,sha256sum)
             
 
-    def checkforChanges(self,url=None,fname=None):
+    def check_for_changes(self,url=None,fname=None):
         if url != None:
             try:
                 urlobj = urllib.URLopener()
@@ -629,7 +621,7 @@ class CVECheck:
             for line in lines:
                 cksums[line.split(' ')[1].split('\n')[0]]=line.split(' ')[0]
             changed=0
-            retval,sha256sum=self.computeChecksum(fname)
+            retval,sha256sum=self.compute_checksum(fname)
             if retval == -1:
                 return(-1)
 
@@ -652,15 +644,15 @@ class CVECheck:
                     outfile.write("%s %s\n"%(cksums[file],file))
                 return(1)
 
-    def updateStore(self):
+    def update_store(self):
         #first RedHat
-        jsonfilelist=self.updatefromRedhat(self.sources['redhat'])
-        self.readRedhatfiles(jsonfilelist)
+        jsonfilelist=self.update_from_redhat(self.sources['redhat'])
+        self.read_redhat_files(jsonfilelist)
         #now NVD
-        retval,channelinfo=self.updatefromNVD()
-        self.readNVDfiles(channelinfo,retval)
+        retval,channelinfo=self.update_from_nvd()
+        self.read_nvd_files(channelinfo,retval)
 
-    def readStore(self,jsonfile,jsonobj):
+    def read_store(self,jsonfile,jsonobj):
         try:
             with codecs.open(jsonfile,'r','utf-8') as infile:
                 jsonobj=json.load(infile)
@@ -738,7 +730,7 @@ def main():
 
 
     if update != 'none':
-        cvcobj.updateStore()
+        cvcobj.update_store()
         sys.exit(0)
 
     if cve != 'none':
@@ -750,15 +742,15 @@ def main():
         aparser.print_help()
 
     if mute != 'none' or product != 'none' or cve != 'none' or disp_mute != 'none':
-        retval,cvcobj.resObj.resultdict=cvcobj.readStore(cvcobj.vulnstore,cvcobj.resObj.resultdict)
+        retval,cvcobj.resObj.resultdict=cvcobj.read_store(cvcobj.vulnstore,cvcobj.resObj.resultdict)
         if retval == -1:
             print 'Trouble initializing from local vuln store. Aborting.'
             sys.exit(-1)
 
-        cvcobj.resObj.trimResult(**argsdict)
+        cvcobj.resObj.trim_result(**argsdict)
         if disp_mute != 'none':
-            cvcobj.resObj.printResult(mutestate='off')
+            cvcobj.resObj.print_result(mutestate='off')
         else:
-            cvcobj.resObj.printResult()
+            cvcobj.resObj.print_result()
 if __name__ == "__main__":
     main()
