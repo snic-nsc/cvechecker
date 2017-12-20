@@ -1,17 +1,15 @@
 #!/usr/bin/env python2
 import codecs
-import xml.etree.ElementTree as ET
 import sys
 import argparse
 from collections import OrderedDict
 from hashlib import sha256
-import simplejson as json
+import json
 from numbers import Number
 import socket
 import time
 import datetime
 import urllib
-import urllib2
 import gzip
 import os
 
@@ -493,7 +491,7 @@ class CVECheck:
             if self.dontconnect:
                 break
             try:
-                cveintobj=json.load(urllib2.urlopen(url),object_pairs_hook=OrderedDict)
+                cveintobj=json.load(urllib.urlopen(url),object_pairs_hook=OrderedDict)
                 fn=pkg+'.json'
                 filelist.append(fn)
                 self.writeStore(fn,cveintobj)
@@ -546,7 +544,7 @@ class CVECheck:
                     if not self.dontconnect:
                         try:
                             print 'pulling down %s'%(inputs['cveurl'])
-                            cveobj=json.load(urllib2.urlopen(inputs['cveurl']))
+                            cveobj=json.load(urllib.urlopen(inputs['cveurl']))
                         except:
                             print 'Failure to fetch CVE details. All data fields may not be available'
 
