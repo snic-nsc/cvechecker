@@ -58,7 +58,11 @@ class Result:
             if nvddescriptions != None:
                 self.resultdict[cveid]['nvddescriptions']=nvddescriptions
             if cvescore != None:
-                self.resultdict[cveid]['score']=cvescore
+                if cvescore == 11:
+                    if not self.resultdict[cveid].__contains__('score'):
+                        self.resultdict[cveid]['score']=11
+                else:
+                    self.resultdict[cveid]['score']=cvescore
             if lastmodifieddate != None:
                 self.resultdict[cveid]['lastmodifieddate']=lastmodifieddate
                 if self.resultdict[cveid]['muteddate'] != "":
@@ -320,7 +324,7 @@ class CVECheck:
 
     def update_from_nvd(self):
         urlobj = urllib.URLopener()
-        channelinfo=dict()
+        channelinfo=OrderedDict()
         try:
             with open('nvdchannels.conf','r') as inp:
                 lines=inp.readlines()
