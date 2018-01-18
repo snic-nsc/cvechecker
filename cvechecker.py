@@ -218,7 +218,6 @@ class Result:
                 mutecount+=1
                 continue
         #if len(self.resultdict)!= 0 and len(self.resultdict)>mutecount:
-            print "---------------------"
             print "CVE: "+key
             print "---------------------"
             if val['fresh'] == True:
@@ -253,15 +252,15 @@ class Result:
                 print "Affected Packages"
                 print "-----------------"
                 for pkg in val['affectedpackages']:
-                    print pkg
+                    print "%s\t"%pkg
             if len(val['rhproducts']) != 0:
                 rhinfoavailable=True
                 print ""
                 print "Redhat Platform info"
                 print "--------------------"
                 for plt,pkg in val['rhproducts'].iteritems():
-                    print "Platform: %s"%plt
-                    print "Package: %s"%pkg
+                    print "Platform: %s    "%plt
+                    print "Package: %s   "%pkg
                     print ""
 
             if rhinfoavailable == False:
