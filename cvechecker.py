@@ -213,6 +213,7 @@ class Result:
                 mutecount+=1
                 continue
         #if len(self.resultdict)!= 0 and len(self.resultdict)>mutecount:
+            print "---------------------"
             print "CVE: "+key
             print "---------------------"
             if val['fresh'] == True:
@@ -231,9 +232,19 @@ class Result:
             print "Info from Redhat"
             print "----------------"
             rhinfoavailable=False
+
+            if len(self.resultdict[key]['descriptions']) != 0:
+                rhinfoavailable=True
+                for desc in self.resultdict[key]['descriptions']:
+                    print desc
+
+            if len(self.resultdict[key]['details']) != 0:
+                rhinfoavailable=True
+                for desc in self.resultdict[key]['details']:
+                    print desc
+
             if len(val['affectedpackages']) != 0:
                 rhinfoavailable=True
-                print ""
                 print "Affected Packages"
                 print "-----------------"
                 for pkg in val['affectedpackages']:
@@ -247,49 +258,29 @@ class Result:
                     print "Platform: %s"%plt
                     print "Package: %s"%pkg
                     print ""
+
             if rhinfoavailable == False:
                 print "Nil"
             print ""
-            continue
-            print "----------------"
             print "Info from NVD"
             print "----------------"
+            if len(self.resultdict[key]['nvddescriptions']) != 0:
+                for desc in self.resultdict[key]['nvddescriptions']:
+                    print desc
+            print ""
             print "Affected Products"
             print "-----------------"
-            for vendor,proddict in affectedproducts.iteritems():
+            print ""
+            for vendor,proddict in val['affectedproducts'].iteritems():
                 print 'Vendor: %s'%vendor
                 for prod,prodlist in proddict.iteritems():
-                    print 'Product: %s'%prod
-                    print "-------"
-                    print ""
-                    print 'Affected Versions'
-                    print "-----------------"
+                    print '\tProduct: %s'%prod
+                    print '\tAffected Versions'
                     for version in prodlist:
-                        print version
+                        print "\t\t%s"%version
                     print ""
 
             print ""
-            print "\nCVE Details"
-            print "-----------"
-            for cve in cvelist:
-                numericscore=self.resultdict[cve]['score']
-                for scoredef,rng in self.scoredefs.iteritems():
-                    if numericscore > rng['high']:
-                        continue
-                    textscore=scoredef
-                    break
-                
-                print 'Id:%s Score:%s'%(cve,textscore)
-                print "------------------------------------- "
-                print 'Redhat'
-                for desc in self.resultdict[cve]['descriptions']:
-                    print desc
-                for detl in self.resultdict[cve]['details']:
-                    print detl
-                print 'NVD'
-                for desc in self.resultdict[cve]['nvddescriptions']:
-                    print desc
-                print ""
 
 class CVECheck:
     def __init__(self):
