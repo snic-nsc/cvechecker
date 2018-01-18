@@ -47,7 +47,7 @@ class Result:
         self.scoredefs['Critical']={'high':10.0, 'low':9.0}
         self.scoredefs['Missing']={'high':11.0, 'low':11.0}
     
-    def add_result(self, cveid, cveurl, cvescore, affectedpackages, rhproducts, affectedproducts,descriptions,details, mitigation, nvddescriptions, lastmodifieddate):
+    def add_result(self, cveid, cveurl, cvescore, affectedpackages, rhproducts, affectedproducts,descriptions,details, mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
         if self.resultdict.__contains__(cveid):
             if descriptions != None:
                 self.resultdict[cveid]['descriptions']=descriptions
@@ -57,6 +57,8 @@ class Result:
                 self.resultdict[cveid]['mitigation']=mitigation
             if nvddescriptions != None:
                 self.resultdict[cveid]['nvddescriptions']=nvddescriptions
+            if nvdrefs != None:
+                self.resultdict[cveid]['nvdrefs']=nvdrefs
             if cvescore != None:
                 if cvescore == 11:
                     if not self.resultdict[cveid].__contains__('score'):
@@ -109,6 +111,7 @@ class Result:
             self.resultdict[cveid]['affectedproducts']=dict()
             self.resultdict[cveid]['descriptions']=list()
             self.resultdict[cveid]['nvddescriptions']=list()
+            self.resultdict[cveid]['nvdrefs']=list()
             self.resultdict[cveid]['details']=list()
             
             if cvescore != None:
@@ -125,6 +128,8 @@ class Result:
                 self.resultdict[cveid]['descriptions']=descriptions
             if nvddescriptions != None:
                 self.resultdict[cveid]['nvddescriptions']=nvddescriptions
+            if nvdrefs != None:
+                self.resultdict[cveid]['nvdrefs']=nvdrefs
             if rhproducts != None:
                 self.resultdict[cveid]['rhproducts']=rhproducts
             if details != None:
@@ -278,8 +283,13 @@ class Result:
                     print '\tAffected Versions'
                     for version in prodlist:
                         print "\t\t%s"%version
-                    print ""
 
+            print "\nReferences"
+            print "----------"
+            refcount=1
+            for url in val['nvdrefs']:
+                print "%d. %s"%(refcount,url)
+                refcount+=1
             print ""
 
 class CVECheck:
@@ -399,6 +409,7 @@ class CVECheck:
         basescorex=0
         descx=0
         datex=0
+        refexp=0
         
         for channel in channelinfo:
             pobj=dict()
@@ -415,6 +426,7 @@ class CVECheck:
                 inputs['details']=None
                 inputs['mitigation']=None
                 inputs['nvddescriptions']=list()
+                inputs['nvdrefs']=list()
                 inputs['lastmodifieddate']=None
                 try:
                     inputs['cveid']=cveitem['cve']['CVE_data_meta']['ID']
@@ -430,6 +442,12 @@ class CVECheck:
                         inputs['nvddescriptions'].append(desc['value'])
                 except:
                     descx+=1
+                try:
+                    for refitem in cveitem['cve']['references']['reference_data']:
+                        for junk,url in refitem.iteritems():
+                            inputs['nvdrefs'].append(url)
+                except:
+                    refexp+=1
                 try:
                     rdstr=cveitem['lastModifiedDate']
                     dtobj=datetime.datetime.strptime(rdstr,'%Y-%m-%dT%H:%MZ')
@@ -527,6 +545,7 @@ class CVECheck:
                     inputs['details']=None
                     inputs['mitigation']=None
                     inputs['nvddescriptions']=None
+                    inputs['nvdrefs']=None
                     inputs['lastmodifieddate']=None
                     try:
                         inputs['cveid']=rj['CVE']
