@@ -221,9 +221,9 @@ class Result:
             print "CVE: "+key
             print "---------------------"
             if val['fresh'] == True:
-                print "Status: Fresh"
+                print "Status: Fresh    "
             else:
-                print "Status: Update"
+                print "Status: Update    "
             numericscore=self.resultdict[key]['score']
             for scoredef,rng in self.scoredefs.iteritems():
                 if numericscore > rng['high']:
