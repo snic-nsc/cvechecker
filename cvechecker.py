@@ -103,6 +103,7 @@ class Result:
 
         else:
             self.resultdict[cveid]=OrderedDict()
+            self.resultdict[cveid]['fresh']=True
             self.resultdict[cveid]['rhproducts']=dict()
             self.resultdict[cveid]['affectedpackages']=list()
             self.resultdict[cveid]['affectedproducts']=dict()
@@ -187,7 +188,9 @@ class Result:
                 dtstr=datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
                 if mute == 'on':
                     newresultdict[entry]['muteddate']=dtstr
+                    newresultdict[entry]['fresh']=False
                     self.resultdict[entry]['muteddate']=dtstr
+                    self.resultdict[entry]['fresh']=False
                 else:
                     newresultdict[entry]['muteddate']=''
                     self.resultdict[entry]['muteddate']=''
