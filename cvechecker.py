@@ -275,14 +275,19 @@ class Result:
             print ""
             print "Affected Products"
             print "-----------------"
-            print ""
             for vendor,proddict in val['affectedproducts'].iteritems():
-                print 'Vendor: %s'%vendor
+                print '\nVendor: %s'%vendor
                 for prod,prodlist in proddict.iteritems():
-                    print '\tProduct: %s'%prod
-                    print '\tAffected Versions'
+                    print '\n\tProduct: %s'%prod
+                    sys.stdout.write('\tAffected Versions: ')
+                    afcount=len(prodlist)
+                    afctr=0
                     for version in prodlist:
-                        print "\t\t%s"%version
+                        if afctr < afcount-1:
+                            sys.stdout.write("%s, "%version)
+                        else:
+                            sys.stdout.write("%s\n"%version)
+                        afctr+=1
 
             print "\nReferences"
             print "----------"
