@@ -298,18 +298,6 @@ class Result:
                     print desc
                 print ""
 
-        with open ('listedscores','w') as outfile:
-            for score in scorelist:
-                outfile.write('%s\n'%score)
-
-        with open ('listedpkgs','w') as outfile:
-            for pkg in pkglist:
-                outfile.write('%s\n'%pkg)
-        with open ('listedcves','w') as outfile:
-            for cve in cvelist:
-                outfile.write('%s\n'%cve)
-            
-
 class CVECheck:
     def __init__(self):
         self.sources=dict()
