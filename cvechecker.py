@@ -212,52 +212,45 @@ class Result:
             if self.resultdict[key]['mute'] == mutestate:
                 mutecount+=1
                 continue
-
-            scorelist.append(val['score'])
-            if not cvelist.__contains__(key):
-                cvelist.append(key)
-
-            for pkg in val['affectedpackages']:
-                if not pkglist.__contains__(pkg):
-                    pkglist.append(pkg)
-
-            if len(val['rhproducts']) != 0:
-                for plt,pkg in val['rhproducts'].iteritems():
-                    if not rhproddict.__contains__(plt):
-                        rhproddict[plt]=list()
-                        rhproddict[plt].append(pkg)
-                        continue
-                    if not rhproddict[plt].__contains__(pkg):
-                        rhproddict[plt].append(pkg)
-
-            for vendor,proddict in val['affectedproducts'].iteritems():
-                if not affectedproducts.__contains__(vendor):
-                    affectedproducts[vendor]=dict()
-
-                for prod,prodlist in proddict.iteritems():
-                    if not affectedproducts[vendor].__contains__(prod):
-                        affectedproducts[vendor][prod]=list()
-
-                    for listitem in prodlist:
-                        if not affectedproducts[vendor][prod].__contains__(listitem):
-                            affectedproducts[vendor][prod].append(listitem)
-
-        if len(self.resultdict)!= 0 and len(self.resultdict)>mutecount:
-
-            print "----------------"
+        #if len(self.resultdict)!= 0 and len(self.resultdict)>mutecount:
+            print "CVE: "+key
+            print "---------------------"
+            if val['fresh'] == True:
+                print "Status: Fresh"
+            else:
+                print "Status: Update"
+            numericscore=self.resultdict[key]['score']
+            for scoredef,rng in self.scoredefs.iteritems():
+                if numericscore > rng['high']:
+                    continue
+                textscore=scoredef
+                break
+            print "Score %s (%s)"%(numericscore,textscore)
+            #print "----------------"
+            print ""
             print "Info from Redhat"
             print "----------------"
-            print "Affected Packages"
-            print "-----------------"
-            for pkg in pkglist:
-                print pkg
-            print "Redhat Platform info"
-            print "--------------------"
-            for plat,pkgs in rhproddict.iteritems():
-                print "Platform: %s"%plat
-                for pkg in pkgs:
-                    print pkg
+            rhinfoavailable=False
+            if len(val['affectedpackages']) != 0:
+                rhinfoavailable=True
                 print ""
+                print "Affected Packages"
+                print "-----------------"
+                for pkg in val['affectedpackages']:
+                    print pkg
+            if len(val['rhproducts']) != 0:
+                rhinfoavailable=True
+                print ""
+                print "Redhat Platform info"
+                print "--------------------"
+                for plt,pkg in val['rhproducts'].iteritems():
+                    print "Platform: %s"%plt
+                    print "Package: %s"%pkg
+                    print ""
+            if rhinfoavailable == False:
+                print "Nil"
+            print ""
+            continue
             print "----------------"
             print "Info from NVD"
             print "----------------"
@@ -697,8 +690,8 @@ def main():
         print './cvechecker.py: Simply displays the help.'
         print './cvechecker.py -p http_server,tivoli,slurm,postgres,general_parallel_file_system,irods,torque_resource_manager,struts,java: Display CVEs against these products'
         print './cvechecker.py -p postgres,http_server --severity=High,Critical,Missing: List vulnerabilities if any, for specified packages, and filter on CVE score'
-        print './cvechecker.py -pkg postgres --severity Medium --mute on: Muting alerts for all matching results'
-        print './cvechecker.py -pkg chromium --severity Medium --mute off: Unmuting alerts for matching results'
+        print './cvechecker.py -p postgres --severity Medium --mute on: Muting alerts for all matching results'
+        print './cvechecker.py -p chromium --severity Medium --mute off: Unmuting alerts for matching results'
         print './cvechecker.py -d: Display CVEs that have been muted, and packages that it affects.'
         sys.exit(0)
 
