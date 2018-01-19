@@ -275,7 +275,7 @@ class Result:
                 print "Nil"
             print ""
             print "Info from NVD"
-            print "----------------"
+            print "-------------"
             print ""
             if len(self.resultdict[key]['nvddescriptions']) != 0:
                 for desc in self.resultdict[key]['nvddescriptions']:
