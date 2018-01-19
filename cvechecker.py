@@ -1,4 +1,6 @@
 #!/usr/bin/env python2
+# Original author: pchengi@nsc.liu.se
+
 import codecs
 import sys
 import argparse
