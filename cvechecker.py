@@ -218,8 +218,16 @@ class Result:
                 mutecount+=1
                 continue
         #if len(self.resultdict)!= 0 and len(self.resultdict)>mutecount:
-            print "CVE: "+key
-            print "---------------------"
+            if len(self.resultdict[key]['descriptions']) != 0:
+                hdr=self.resultdict[key]['descriptions'][0].split('\n')[1]
+            else:
+                hdr=key
+            print "\n"
+            print hdr
+            hdrlen=len(hdr)
+            for i in range(0,hdrlen):
+                sys.stdout.write('=')
+            print "\n"
             if val['fresh'] == True:
                 print "Status: Fresh    "
             else:
@@ -239,8 +247,6 @@ class Result:
 
             if len(self.resultdict[key]['descriptions']) != 0:
                 rhinfoavailable=True
-                for desc in self.resultdict[key]['descriptions']:
-                    print desc
 
             if len(self.resultdict[key]['details']) != 0:
                 rhinfoavailable=True
@@ -251,6 +257,7 @@ class Result:
                 rhinfoavailable=True
                 print "Affected Packages"
                 print "-----------------"
+                print ""
                 for pkg in val['affectedpackages']:
                     print "%s\t"%pkg
             if len(val['rhproducts']) != 0:
@@ -258,6 +265,7 @@ class Result:
                 print ""
                 print "Redhat Platform info"
                 print "--------------------"
+                print ""
                 for plt,pkg in val['rhproducts'].iteritems():
                     print "Platform: %s    "%plt
                     print "Package: %s   "%pkg
@@ -268,6 +276,7 @@ class Result:
             print ""
             print "Info from NVD"
             print "----------------"
+            print ""
             if len(self.resultdict[key]['nvddescriptions']) != 0:
                 for desc in self.resultdict[key]['nvddescriptions']:
                     print desc
@@ -290,11 +299,9 @@ class Result:
 
             print "\nReferences"
             print "----------"
-            refcount=1
-            for url in val['nvdrefs']:
-                print "%d. %s"%(refcount,url)
-                refcount+=1
             print ""
+            for url in val['nvdrefs']:
+                print "%s    "%(url)
 
 class CVECheck:
     def __init__(self):
