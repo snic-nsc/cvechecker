@@ -734,6 +734,7 @@ def main():
         print './cvechecker.py -p postgres --severity Medium --mute on: Muting alerts for all matching results'
         print './cvechecker.py -p chromium --severity Medium --mute off: Unmuting alerts for matching results'
         print './cvechecker.py -d: Display CVEs that have been muted, and packages that it affects.'
+        print './cvechecker.py -k Intel,InfiniBand,AMD: Display CVEs with descriptions containing these keywords. Case-sensitive, to avoid too many false positives.'
         sys.exit(0)
 
     if severity != 'none':

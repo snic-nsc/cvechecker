@@ -1,5 +1,5 @@
-usage: cvechecker.py [-h] [-c CVE] [-s SEVERITY] [-p PRODUCT] [-m MUTE]
-                     [-u [UPDATE]] [-d [DISP_MUTE]] [-e [EXAMPLES]]
+usage: cvechecker.py [-h] [-c CVE] [-s SEVERITY] [-p PRODUCT] [-k KEYWORD]
+                     [-m MUTE] [-u [UPDATE]] [-d [DISP_MUTE]] [-e [EXAMPLES]]
 
 A tool to fetch and update a local vulnerability store against select sources
 of vulnerability information. It can be queried for specific CVEs, by severity
@@ -18,6 +18,10 @@ optional arguments:
   -p PRODUCT, --product PRODUCT
                         filter results by specified product name or comma-
                         separated list of products.
+  -k KEYWORD, --keyword KEYWORD
+                        filter results by specified keyword/comma-separated
+                        list of keywords in CVE description text from NVD. Can
+                        be combined with -p, to get a union set.
   -m MUTE, --mute MUTE  set mute on or off, to silence/unsilence reporting.
                         Must be used in combination with one of --product or
                         --cve options

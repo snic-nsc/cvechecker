@@ -1,0 +1,7 @@
+./cvechecker.py: Simply displays the help.
+./cvechecker.py -p http_server,tivoli,slurm,postgres,general_parallel_file_system,irods,torque_resource_manager,struts,java: Display CVEs against these products
+./cvechecker.py -p postgres,http_server --severity=High,Critical,Missing: List vulnerabilities if any, for specified products, and filter on CVE score
+./cvechecker.py -p postgres --severity Medium --mute on: Muting alerts for all matching results
+./cvechecker.py -p chromium --severity Medium --mute off: Unmuting alerts for matching results
+./cvechecker.py -d: Display CVEs that have been muted, and packages that it affects.
+./cvechecker.py -k Intel,InfiniBand,AMD: Display CVEs with descriptions containing these keywords. Case-sensitive, to avoid too many false positives.
