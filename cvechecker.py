@@ -6,7 +6,7 @@ import sys
 import argparse
 from collections import OrderedDict
 from hashlib import sha256
-import json as json
+import simplejson as json
 from numbers import Number
 import socket
 import time
