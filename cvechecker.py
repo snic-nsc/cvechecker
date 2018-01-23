@@ -6,7 +6,7 @@ import sys
 import argparse
 from collections import OrderedDict
 from hashlib import sha256
-import json as json
+import simplejson as json
 from numbers import Number
 import socket
 import time
@@ -523,7 +523,7 @@ class CVECheck:
             if self.dontconnect:
                 break
             try:
-                cveintobj=json.load(urllib.urlopen(url),object_pairs_hook=OrderedDict)
+                cveintobj=json.load(urllib.urlopen(url))
                 fn=pkg+'.json'
                 filelist.append(fn)
                 self.write_store(fn,cveintobj)
@@ -722,6 +722,7 @@ def main():
         print './cvechecker.py -p postgres --severity Medium --mute on: Muting alerts for all matching results'
         print './cvechecker.py -p chromium --severity Medium --mute off: Unmuting alerts for matching results'
         print './cvechecker.py -d: Display CVEs that have been muted, and packages that it affects.'
+        print './cvechecker.py -k Intel,InfiniBand,AMD: Display CVEs with descriptions containing these keywords. Case-sensitive, to avoid too many false positives.'
         sys.exit(0)
 
     if severity != 'none':
