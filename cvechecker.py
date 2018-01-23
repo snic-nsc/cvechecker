@@ -529,7 +529,7 @@ class CVECheck:
             if self.dontconnect:
                 break
             try:
-                cveintobj=json.load(urllib.urlopen(url),object_pairs_hook=OrderedDict)
+                cveintobj=json.load(urllib.urlopen(url))
                 fn=pkg+'.json'
                 filelist.append(fn)
                 self.write_store(fn,cveintobj)
