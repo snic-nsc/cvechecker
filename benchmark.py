@@ -3,6 +3,7 @@ from cvechecker import CVECheck
 import timeit
 
 def myfunc():
+    print 'Will now only read'
     cveobj=CVECheck()
     pobj=dict()
     retval,pobj=cveobj.read_store('CVE-2017.json',pobj)
@@ -10,6 +11,7 @@ def myfunc():
     return pobj
 
 def myfunc2():
+    print 'Will now read and write'
     cveobj=CVECheck()
     pobj=dict()
     retval,pobj=cveobj.read_store('CVE-2017.json',pobj)
