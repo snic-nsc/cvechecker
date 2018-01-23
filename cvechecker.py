@@ -692,7 +692,7 @@ def main():
     aparser.add_argument("-c", "--cve", type=str, default='none',help='output information about specified CVE or comma-separated list of CVEs. Cannot be combined with any other filter/option.')
     aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical". Needs to be used with --product.') #lookup by severity level
     aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product, e.g. http_server
-    aparser.add_argument("-k", "--keyword", type=str, default='none',help='filter results by specified keyword/comma-separated list of keywords in CVE description text from NVD. Cannot be combined with -p') #lookup by keyword e.g. Intel
+    aparser.add_argument("-k", "--keyword", type=str, default='none',help='filter results by specified keyword/comma-separated list of keywords in CVE description text from NVD. Can be combined with -p, to get a union set.') #lookup by keyword e.g. Intel
     aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one of --product or --cve options') #mark results as seen or unseen
     aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the vulnerability store. Should be run regularly, preferably from a cron.')
     aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. --cve or --product filters may be used in conjuction with -d.')
