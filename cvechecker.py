@@ -6,7 +6,7 @@ import sys
 import argparse
 from collections import OrderedDict
 from hashlib import sha256
-import simplejson as json
+import json as json
 from numbers import Number
 import socket
 import time
@@ -140,7 +140,7 @@ class Result:
                 self.resultdict[cveid]['lastmodifieddate']=lastmodifieddate
             return
 
-    def trim_result(self, products=None, packages=None ,scores=None, cves=None, mute='none'):
+    def trim_result(self, products=None, keywords=None, scores=None, cves=None, mute='none'):
         newresultdict=dict()
         for key, val in self.resultdict.iteritems():
             if cves != None:
@@ -159,19 +159,23 @@ class Result:
                 if numfails == len(scores):
                     #this entry fails all specified score requirements
                     continue
-            if packages != None:
-                found=False
-                for package in packages:
-                    for affpkg in val['affectedpackages']:
-                        if affpkg.startswith(package):
-                            found=True
-                            break
+            found=False
+            if keywords != None:
+                for keyword in keywords:
+                    keyword+=' '
+                    if len(val['nvddescriptions']) > 0:
+                        for desc in val['nvddescriptions']:
+                            if desc.find(keyword) != -1:
+                                found=True
+                                break
                     if found:
                         break
                 if not found:
-                    continue
-            if products != None:
-                found=False
+                    # if a product-based search is also requested, we need to check for a product match before eliminating the result
+                    if products == None:
+                        continue
+
+            if products != None and found == False:
                 for product in products:
                     for vendor,proddict in val['affectedproducts'].iteritems():
                         for prodname, versionlist in proddict.iteritems():
@@ -688,6 +692,7 @@ def main():
     aparser.add_argument("-c", "--cve", type=str, default='none',help='output information about specified CVE or comma-separated list of CVEs. Cannot be combined with any other filter/option.')
     aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical". Needs to be used with --product.') #lookup by severity level
     aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product, e.g. http_server
+    aparser.add_argument("-k", "--keyword", type=str, default='none',help='filter results by specified keyword/comma-separated list of keywords in CVE description text from NVD. Cannot be combined with -p') #lookup by keyword e.g. Intel
     aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one of --product or --cve options') #mark results as seen or unseen
     aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the vulnerability store. Should be run regularly, preferably from a cron.')
     aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. --cve or --product filters may be used in conjuction with -d.')
@@ -696,11 +701,12 @@ def main():
     args=aparser.parse_args()
     cve=args.cve
     severity=args.severity
-    product=args.product
+    products=args.product
     mute=args.mute
     disp_mute=args.disp_mute
     update=args.update
     examples=args.examples
+    keywords=args.keyword
 
     argsdict=dict()
     argsdict['scores']=None
@@ -712,7 +718,7 @@ def main():
     if examples != 'none':
         print './cvechecker.py: Simply displays the help.'
         print './cvechecker.py -p http_server,tivoli,slurm,postgres,general_parallel_file_system,irods,torque_resource_manager,struts,java: Display CVEs against these products'
-        print './cvechecker.py -p postgres,http_server --severity=High,Critical,Missing: List vulnerabilities if any, for specified packages, and filter on CVE score'
+        print './cvechecker.py -p postgres,http_server --severity=High,Critical,Missing: List vulnerabilities if any, for specified products, and filter on CVE score'
         print './cvechecker.py -p postgres --severity Medium --mute on: Muting alerts for all matching results'
         print './cvechecker.py -p chromium --severity Medium --mute off: Unmuting alerts for matching results'
         print './cvechecker.py -d: Display CVEs that have been muted, and packages that it affects.'
@@ -724,26 +730,32 @@ def main():
             if score != 'None' and score != 'Low' and score != 'High' and score != 'Medium' and score != 'Critical' and score != 'Missing':
                 print 'Invalid severity level!'
                 sys.exit(-1)
-        if product == 'none':
+        if products == 'none':
             print 'This option requires you to specify at least one product with the --product option'
             sys.exit(-1)
         cve='none'
         argsdict['scores']=scores
 
 
-    if product != 'none':
-        argsdict['products']=product.split(',')
+    if products != 'none':
+        argsdict['products']=products.split(',')
+        cve='none'
+
+    if keywords != 'none':
+        argsdict['keywords']=keywords.split(',')
         cve='none'
 
     if mute != 'none':
         if mute != 'on' and mute != 'off':
             print 'Value for mute flag can only be "off" or "on"'
             sys.exit(-1)
-        if product == 'none' and cve == 'none':
-            print 'Mute flag requires the use of the --product or the --cve option. If both are specified, --product is ignored.'
+        if products == 'none' and cve == 'none' and keywords == 'none':
+            print 'Mute flag requires the use of the --product, --keyword, or the --cve filter. If --cve is specified with other filters, the other filters are.'
             sys.exit(-1)
-        if product != 'none' and cve != 'none':
-            product='none'
+        if products != 'none' and cve != 'none':
+            products='none'
+        if keywords != 'none' and cve != 'none':
+            keywords='none'
         argsdict['mute']=mute
 
     if update != 'none':
@@ -754,16 +766,17 @@ def main():
         argsdict['cves']=cve.split(',')
         argsdict['scores']=None
         argsdict['products']=None
+        argsdict['keywords']=None
 
     if len(sys.argv) == 1:
         aparser.print_help()
 
-    if mute != 'none' or product != 'none' or cve != 'none' or disp_mute != 'none':
+    if mute != 'none' or products != 'none' or cve != 'none' or disp_mute != 'none' or keywords != 'none':
         retval,cvcobj.resObj.resultdict=cvcobj.read_store(cvcobj.vulnstore,cvcobj.resObj.resultdict)
         if retval == -1:
             print 'Trouble initializing from local vuln store. Aborting.'
             sys.exit(-1)
-
+        
         cvcobj.resObj.trim_result(**argsdict)
         if mute != 'none':
             sys.exit(0)
