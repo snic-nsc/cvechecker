@@ -206,8 +206,9 @@ class Result:
                     newresultdict[entry]['muteddate']=''
                     self.resultdict[entry]['muteddate']=''
                     
-            with codecs.open('vulnstore.json','w','utf-8') as outfile:
-                json.dump(self.resultdict,outfile)
+            outfile=codecs.open('vulnstore.json','w','utf-8')
+            json.dump(self.resultdict,outfile)
+            outfile.close()
         self.resultdict=newresultdict
 
     def print_result(self, mutestate='on'):
@@ -328,8 +329,9 @@ class CVECheck:
         urlobj = urllib.URLopener()
         channelinfo=OrderedDict()
         try:
-            with open('nvdchannels.conf','r') as inp:
-                lines=inp.readlines()
+            inp=open('nvdchannels.conf','r')
+            lines=inp.readlines()
+            inp.close()
 
             for line in lines:
                 if line.startswith('#'):
@@ -355,8 +357,9 @@ class CVECheck:
                 raise
             for channel in channelinfo:
                 urlobj.retrieve(channelinfo[channel]['metaurl'],channelinfo[channel]['metafname'])
-                with open(channelinfo[channel]['metafname'],'r') as inp:
-                    lines=inp.readlines()
+                inp=open(channelinfo[channel]['metafname'],'r')
+                lines=inp.readlines()
+                inp.close()
                 cksum=''
 
                 for line in lines:
@@ -375,10 +378,12 @@ class CVECheck:
                 if sha256sum != channelinfo[channel]['sha256sum']:
                     print "Update available for %s"%channelinfo[channel]
                     urlobj.retrieve(channelinfo[channel]['url'],channelinfo[channel]['zip'])
-                    with gzip.GzipFile(channelinfo[channel]['zip'], 'rb') as f:
-                        fcontent = f.read()
-                    with open(channel,'wb') as out:
-                        out.write(fcontent)
+                    f=gzip.GzipFile(channelinfo[channel]['zip'], 'rb')
+                    fcontent = f.read()
+                    f.close()
+                    out=open(channel,'wb')
+                    out.write(fcontent)
+                    out.close()
                     os.remove(channelinfo[channel]['zip'])
 
                 #insert into sha256sums if lines not present
@@ -411,8 +416,8 @@ class CVECheck:
 
     def read_nvd_files(self,channelinfo,retval):
         try:
-            with open('vulnstore.json','r') as inp:
-                pass
+            inp=open('vulnstore.json','r')
+            inp.close()
         except:
             print 'No vuln store file found. Initializing from whatever we have.'
             retval=1
@@ -499,8 +504,9 @@ class CVECheck:
     def update_from_redhat(self,url):
         redhatjson='redhat-cve.json'
         try:
-            with open('advancedcveinfolist','r') as infile:
-                lines=infile.readlines()
+            infile=open('advancedcveinfolist','r')
+            lines=infile.readlines()
+            infile.close()
             pkgline=''
             for line in lines:
                 if line.startswith('packages|'):
@@ -621,8 +627,9 @@ class CVECheck:
     def compute_checksum(self,fname):
         try:
             sha256sum=''
-            with open(fname,'rb') as infile:
-                sha256sum=sha256(infile.read()).hexdigest()
+            infile=open(fname,'rb') as infile
+            sha256sum=sha256(infile.read()).hexdigest()
+            infile.close()
             return(0,sha256sum)
         except:
             return(-1,sha256sum)
@@ -638,8 +645,9 @@ class CVECheck:
 
         cksums=OrderedDict()
         try:
-            with open(self.cksumfile,'r') as infile:
-                lines=infile.readlines()
+            infile=open(self.cksumfile,'r')
+            lines=infile.readlines()
+            infile.close()
             for line in lines:
                 cksums[line.split(' ')[1].split('\n')[0]]=line.split(' ')[0]
             changed=0
@@ -654,17 +662,19 @@ class CVECheck:
             if changed == 0:
                 return(0)
             else:
-                with open('sha256sums','w') as outfile:
-                    for file in cksums:
-                        outfile.write("%s %s\n"%(cksums[file],file))
+                outfile=open('sha256sums','w')
+                for file in cksums:
+                    outfile.write("%s %s\n"%(cksums[file],file))
+                outfile.close()
                 return(1)
         except:
             print "Could not look up old checksum. Will add"
             cksums[fname]=sha256sum
-            with open('sha256sums','w') as outfile:
-                for file in cksums:
-                    outfile.write("%s %s\n"%(cksums[file],file))
-                return(1)
+            outfile=open('sha256sums','w')
+            for file in cksums:
+                outfile.write("%s %s\n"%(cksums[file],file))
+            outfile.close()
+            return(1)
 
     def update_store(self):
         #first RedHat
@@ -676,15 +686,17 @@ class CVECheck:
 
     def read_store(self,jsonfile,jsonobj):
         try:
-            with codecs.open(jsonfile,'r','utf-8') as infile:
-                jsonobj=json.load(infile)
+            infile=codecs.open(jsonfile,'r','utf-8')
+            jsonobj=json.load(infile)
+            infile.close()
         except:
             return(-1,jsonobj)
         return(0,jsonobj)
 
     def write_store(self,jsonfile, jsonobj):
-        with codecs.open(jsonfile,'w','utf-8') as outfile:
-            json.dump(jsonobj,outfile)
+        outfile=codecs.open(jsonfile,'w','utf-8')
+        json.dump(jsonobj,outfile)
+        outfile.close()
 
 def main():
 
