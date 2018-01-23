@@ -627,7 +627,7 @@ class CVECheck:
     def compute_checksum(self,fname):
         try:
             sha256sum=''
-            infile=open(fname,'rb') as infile
+            infile=open(fname,'rb')
             sha256sum=sha256(infile.read()).hexdigest()
             infile.close()
             return(0,sha256sum)
