@@ -1,4 +1,5 @@
 #comma-seperated list of packages you would like the tool to fetch complete CVE information for.
 #Fetching all CVEs is not practical, as they need to be fetched each time, to ensure information they provide is current.
-#packages|postgres,tomcat,httpd
-packages|httpd,postgres,java,tomcat,emacs
+#If you don't want any, simply uncomment the next line, and remove the other packages line
+#packages|none
+packages|httpd,postgres,java,tomcat
