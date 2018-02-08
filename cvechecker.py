@@ -234,7 +234,7 @@ class Result:
             hdrlen=len(hdr)
             for i in range(0,hdrlen):
                 sys.stdout.write('=')
-            print "\n"
+            print "\nhttps://nvd.nist.gov/vuln/detail/"+hdr+"\n"
             if val['fresh'] == True:
                 print "Status: Fresh    "
             else:
