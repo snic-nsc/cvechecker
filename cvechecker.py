@@ -24,8 +24,6 @@ class CVE:
         self.cveid=None
         self.cveurl=None
         self.cvescore=None
-        self.affectedpackages=list()
-        self.rhproducts=dict()
         self.affectedproducts=dict()
         self.descriptions=list()
         self.details=list()
@@ -34,7 +32,7 @@ class CVE:
         self.lastmodifieddate=None
         self.isnew=True
 
-    def update_cve(self,cveid, cveurl,cvescore,affectedpackages,rhproducts,affectedproducts,descriptions,details,mitigation,nvddescriptions,lastmodifieddate):
+    def update_cve(self,cveid, cveurl,cvescore,affectedproducts,descriptions,details,mitigation,nvddescriptions,lastmodifieddate):
         pass
 
 class Result:
@@ -49,7 +47,7 @@ class Result:
         self.scoredefs['Critical']={'high':10.0, 'low':9.0}
         self.scoredefs['Missing']={'high':11.0, 'low':11.0}
     
-    def add_result(self, cveid, cveurl, cvescore, affectedpackages, rhproducts, affectedproducts,descriptions,details, mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
+    def add_result(self, cveid, cveurl, cvescore, affectedproducts,descriptions,details, mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
         if self.resultdict.__contains__(cveid):
             if descriptions != None:
                 self.resultdict[cveid]['descriptions']=descriptions
@@ -77,20 +75,6 @@ class Result:
                         self.resultdict[cveid]['muteddate']=''
                         self.resultdict[cveid]['mute']='off'
                                     
-            if affectedpackages != None:
-                for pkg in affectedpackages:
-                    if not self.resultdict[cveid]['affectedpackages'].__contains__(pkg):
-                        self.resultdict[cveid]['affectedpackages'].append(pkg)
-
-            if rhproducts != None:
-                for newprod,newpkg in rhproducts.iteritems():
-                    if not self.resultdict[cveid]['rhproducts'].__contains__(newprod):
-                        self.resultdict[cveid]['rhproducts'][newprod]=list()
-                        self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
-                    else:
-                        if not self.resultdict[cveid]['rhproducts'][newprod].__contains__(newpkg):
-                            self.resultdict[cveid]['rhproducts'][newprod].append(newpkg)
-                    
             if affectedproducts != None:
                 for vendor,proddict in affectedproducts.iteritems():
                     if not self.resultdict[cveid]['affectedproducts'].__contains__(vendor):
@@ -108,8 +92,6 @@ class Result:
         else:
             self.resultdict[cveid]=OrderedDict()
             self.resultdict[cveid]['fresh']=True
-            self.resultdict[cveid]['rhproducts']=dict()
-            self.resultdict[cveid]['affectedpackages']=list()
             self.resultdict[cveid]['affectedproducts']=dict()
             self.resultdict[cveid]['descriptions']=list()
             self.resultdict[cveid]['nvddescriptions']=list()
@@ -122,8 +104,6 @@ class Result:
                 self.resultdict[cveid]['url']=cveurl
             self.resultdict[cveid]['mute']='off'
             self.resultdict[cveid]['muteddate']=''
-            if affectedpackages != None:
-                self.resultdict[cveid]['affectedpackages']=affectedpackages
             if affectedproducts != None:
                 self.resultdict[cveid]['affectedproducts']=affectedproducts
             if descriptions != None:
@@ -132,8 +112,6 @@ class Result:
                 self.resultdict[cveid]['nvddescriptions']=nvddescriptions
             if nvdrefs != None:
                 self.resultdict[cveid]['nvdrefs']=nvdrefs
-            if rhproducts != None:
-                self.resultdict[cveid]['rhproducts']=rhproducts
             if details != None:
                 self.resultdict[cveid]['details']=details
             if lastmodifieddate != None:
@@ -215,7 +193,6 @@ class Result:
         proddict=OrderedDict()
         pkglist=list()
         scorelist=list()
-        rhproddict=dict()
         affectedproducts=dict()
         mutecount=0
 
@@ -259,23 +236,13 @@ class Result:
                 for desc in self.resultdict[key]['details']:
                     print desc
 
-            if len(val['affectedpackages']) != 0:
-                rhinfoavailable=True
-                print "Affected Packages"
-                print "-----------------"
-                print ""
-                for pkg in val['affectedpackages']:
-                    print "%s\t"%pkg
-            if len(val['rhproducts']) != 0:
+            fixme=1
+            if fixme:
                 rhinfoavailable=True
                 print ""
                 print "Redhat Platform info"
                 print "--------------------"
                 print ""
-                for plt,pkg in val['rhproducts'].iteritems():
-                    print "Platform: %s    "%plt
-                    print "Package: %s   "%pkg
-                    print ""
 
             if rhinfoavailable == False:
                 print "Nil"
@@ -313,16 +280,11 @@ class CVECheck:
     def __init__(self):
         self.sources=dict()
         self.resObj=Result()
-        self.sources['redhat']='https://access.redhat.com/labs/securitydataapi/cve.json'
+        self.sources['redhat']='https://www.redhat.com/security/data/metrics/cvemap.xml'
         self.vulnstore='vulnstore.json'
         self.vulnobj=OrderedDict()
         self.cksumfile='sha256sums'
         self.dontconnect=False
-        self.rhproducts=dict()
-        self.rhproducts['Red Hat Enterprise Linux 5']='RHEL5'
-        self.rhproducts['Red Hat Enterprise Linux 6']='RHEL6'
-        self.rhproducts['Red Hat Enterprise Linux 7']='RHEL7'
-        self.rhproducts['Red Hat Enterprise Linux 8']='RHEL8'
 
     def update_from_nvd(self):
         urlobj = urllib.URLopener()
@@ -436,9 +398,7 @@ class CVECheck:
                 inputs['cveid']=None
                 inputs['cveurl']=None
                 inputs['cvescore']=None
-                inputs['affectedpackages']=None
                 inputs['affectedproducts']=dict()
-                inputs['rhproducts']=None
                 inputs['descriptions']=None
                 inputs['details']=None
                 inputs['mitigation']=None
@@ -497,27 +457,6 @@ class CVECheck:
         self.write_store(self.vulnstore,self.resObj.resultdict)
                 
     def update_from_redhat(self,url):
-        redhatjson='redhat-cve.json'
-        try:
-            with open('advancedcveinfolist','r') as infile:
-                lines=infile.readlines()
-            pkgline=''
-            for line in lines:
-                if line.startswith('packages|'):
-                    pkgline=line
-                    break
-            if pkgline == '':
-                raise
-            pkglist=pkgline.split('|')[1].split('\n')[0].split(',')
-            if pkglist[0] == '':
-                raise
-        except:
-            print 'Please specify packages you wish to query CVEs for, in a file called advancedcveinfolist, containing a line in this format'
-            print 'packages|pkg1,pkg2,pkg3...'
-            sys.exit(-1)
-
-        filelist=list()
-        for pkg in pkglist:
             url=self.sources['redhat']
             url+='?package=%s'%pkg
             if self.dontconnect:
@@ -533,17 +472,8 @@ class CVECheck:
         return(filelist)
 
     def read_redhat_files(self,redhatjsonfilelist):
-        initstore=0
-        toupdate=list()
-        for redhatjson in redhatjsonfilelist:
-            retval=self.check_for_changes(fname=redhatjson)
-            if retval != 0:
-                initstore=1
-                toupdate.append(redhatjson)
+        retval=self.check_for_changes(fname=redhatjson)
         retval,self.resObj.resultdict=self.read_store(self.vulnstore,self.resObj.resultdict)
-        if retval == -1:
-            initstore=1
-
         if initstore == 1:
             for redhatjson in toupdate:
                 rjobj=OrderedDict()
@@ -555,57 +485,13 @@ class CVECheck:
                     inputs['cveid']=None
                     inputs['cveurl']=None
                     inputs['cvescore']=None
-                    inputs['affectedpackages']=list()
                     inputs['affectedproducts']=None
-                    inputs['rhproducts']=None
                     inputs['descriptions']=list()
                     inputs['details']=None
                     inputs['mitigation']=None
                     inputs['nvddescriptions']=None
                     inputs['nvdrefs']=None
                     inputs['lastmodifieddate']=None
-                    try:
-                        inputs['cveid']=rj['CVE']
-                        inputs['cveurl']=rj['resource_url']
-                        inputs['affectedpackages']=rj['affected_packages']
-                        inputs['cvescore']=rj['cvss3_score']
-                    except:
-                        moveon=1
-
-                    if inputs['cvescore'] == None:
-                        inputs['cvescore']=11 #value for missing score
-                    if not self.dontconnect:
-                        try:
-                            print 'pulling down %s'%(inputs['cveurl'])
-                            cveobj=json.load(urllib.urlopen(inputs['cveurl']))
-                        except:
-                            print 'Failure to fetch CVE details. All data fields may not be available'
-
-                        #RedHat CVE files are very inconsistent with fields.
-                        try:
-                            inputs['details']=cveobj['details']
-                        except:
-                            pass
-                        try:
-                            inputs['descriptions'].append(cveobj['bugzilla']['description'])
-                        except:
-                            inputs['descriptions'] = None
-                        try:
-                            intputs['mitigation']=cveobj['mitigation']
-                        except:
-                            pass
-
-                        apdict=OrderedDict()
-                        for pstate in cveobj['affected_release']:
-                            if not type(pstate) == dict:
-                                continue
-                            if not pstate.__contains__('package'):
-                                continue
-                            try:
-                                apdict[self.rhproducts[pstate['product_name']]]=pstate['package']
-                            except:
-                                apdict[pstate['product_name']]=pstate['package']
-                        inputs['rhproducts']=apdict
 
                     self.resObj.add_result(**inputs)
 
