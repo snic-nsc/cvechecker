@@ -15,16 +15,11 @@
 
 # Configuration and Deployment
 
-- CVE checker uses NVD vulnerability feeds (json) and Redhat Security API as sources to build the vulnerability store.
-- The Redhat security API data only provides RPM infomation, and fetches files individually per CVE, so you should choose as few redhat packages to monitor as possible; these are specified in the file `advancedcveinfolist.` If you wish to entirely disable Redhat product information fetches, simply change the line like this
-
-```
-packages|none
-```
+- CVE checker uses NVD vulnerability feeds (json) and Redhat cvemap.xml as sources to build the vulnerability store.
 - Inspect the nvdchannels.conf file to add/remove any more feeds from NVD;
 - Execute firstuse.sh prior to first run.
 - Execute ./cvechecker.py -u , to fetch required files and build the local vuln store.
-- If you've disabled Redhat product info, you should have only a few lines of output on the terminal, with the last line showing the number of entries in your newly constructed CVE store. If everything's gone well, it should be a rather large number. The output looks like this (it'll have a lot many more lines if you are looking up Redhat packages).
+- The last line of the output shows the number of entries in your newly constructed CVE store. If everything's gone well, it should be a rather large number. The output looks like this:
 
 ```
 [pchengi@esg-idx cvechecker]$ ./cvechecker.py -u
@@ -95,4 +90,3 @@ References
 
 https://github.com/irods/irods/issues/3452    
 ```
-
