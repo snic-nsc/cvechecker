@@ -8,6 +8,7 @@ from collections import OrderedDict
 from hashlib import sha256
 import simplejson as json
 from numbers import Number
+import xml.etree.ElementTree as ET
 import socket
 import time
 import datetime
@@ -331,7 +332,7 @@ class CVECheck:
                 channelinfo[channel]['sha256sum']=cksum
 
             #lets compare checksums
-            changed=0
+            changed=False
             for channel in channelinfo:
                 retval,sha256sum=self.compute_checksum(channel)
                 if sha256sum != channelinfo[channel]['sha256sum']:
@@ -346,7 +347,7 @@ class CVECheck:
                 #insert into sha256sums if lines not present
                 retval=self.check_for_changes(fname=channel)
                 if retval != 0:
-                    changed=1
+                    changed=True
                 if retval == -1:
                     print "Catastrophic failure. FS error?"
                     sys.exit(-1)
@@ -366,7 +367,7 @@ class CVECheck:
             #this is the unupdated case. Local nvd files are available for reading
             return(0,channelinfo)
         #this is the potentially updated case. Local nvd files are available for reading
-        if changed == 1:
+        if changed == True:
             return(1,channelinfo)
         else:
             return(0,channelinfo)
@@ -458,18 +459,24 @@ class CVECheck:
                 
     def update_from_redhat(self,url):
             url=self.sources['redhat']
-            url+='?package=%s'%pkg
             if self.dontconnect:
-                break
+                return(-1,None)
             try:
-                cveintobj=json.load(urllib.urlopen(url))
-                fn=pkg+'.json'
-                filelist.append(fn)
-                self.write_store(fn,cveintobj)
+                urlobj = urllib.URLopener()
+                urlobj.retrieve(url,'cvemap.xml')
+                tree=ET.parse('cvemap.xml')
+                root=tree.getroot()
+                if root.tag != 'cvemap':
+                    raise
             except:
                 print 'cannot update CVEs for redhat packages; check internet connectivity.'
-                self.dontconnect=True
-        return(filelist)
+                return(-1,None)
+            retval=self.check_for_changes(fname='cvemap.xml')
+            if retval != 0:
+                changed=1
+            if retval == -1:
+                print "Catastrophic failure. FS error?"
+                sys.exit(-1)
 
     def read_redhat_files(self,redhatjsonfilelist):
         retval=self.check_for_changes(fname=redhatjson)
@@ -513,6 +520,17 @@ class CVECheck:
         except:
             return(-1,sha256sum)
             
+    
+    def get_checksum(self,fname):
+        cksums=OrderedDict()
+        try:
+            with open(self.cksumfile,'r') as infile:
+                lines=infile.readlines()
+            for line in lines:
+                cksums[line.split(' ')[1].split('\n')[0]]=line.split(' ')[0]
+            if cksums.__contains__(fname):
+                return (0,cksums[fname])
+            return (-1,None)
 
     def check_for_changes(self,url=None,fname=None):
         if url != None:
@@ -528,7 +546,7 @@ class CVECheck:
                 lines=infile.readlines()
             for line in lines:
                 cksums[line.split(' ')[1].split('\n')[0]]=line.split(' ')[0]
-            changed=0
+            changed=False
             retval,sha256sum=self.compute_checksum(fname)
             if retval == -1:
                 return(-1)
@@ -536,8 +554,8 @@ class CVECheck:
             if cksums[fname] != sha256sum:
                 print "checksum list has been updated for file %s."%(fname)
                 cksums[fname]=sha256sum
-                changed=1
-            if changed == 0:
+                changed=True
+            if changed == False:
                 return(0)
             else:
                 with open('sha256sums','w') as outfile:
@@ -554,7 +572,7 @@ class CVECheck:
 
     def update_store(self):
         #first RedHat
-        jsonfilelist=self.update_from_redhat(self.sources['redhat'])
+        retval,cvexml=self.update_from_redhat(self.sources['redhat'])
         self.read_redhat_files(jsonfilelist)
         #now NVD
         retval,channelinfo=self.update_from_nvd()
