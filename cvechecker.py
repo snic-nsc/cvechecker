@@ -368,9 +368,9 @@ class CVECheck:
             return(0,channelinfo)
         #this is the potentially updated case. Local nvd files are available for reading
         if changed == True:
-            return(1,channelinfo)
+            return(True,channelinfo)
         else:
-            return(0,channelinfo)
+            return(False,channelinfo)
 
     def read_nvd_files(self,channelinfo,retval):
         try:
@@ -460,7 +460,7 @@ class CVECheck:
     def update_from_redhat(self,url):
             url=self.sources['redhat']
             if self.dontconnect:
-                return(-1,None)
+                return(False,None)
             try:
                 urlobj = urllib.URLopener()
                 urlobj.retrieve(url,'cvemap.xml')
@@ -470,37 +470,88 @@ class CVECheck:
                     raise
             except:
                 print 'cannot update CVEs for redhat packages; check internet connectivity.'
-                return(-1,None)
+                return(False,None)
             retval=self.check_for_changes(fname='cvemap.xml')
-            if retval != 0:
-                changed=1
+            if retval == 0:
+                print "No update available from Redhat"
+                return(False,'cvemap.xml')
             if retval == -1:
                 print "Catastrophic failure. FS error?"
                 sys.exit(-1)
+            if retval == 1:
+                print "Redhat CVE xml updated successfully."
+                return(True,'cvemap.xml')
 
-    def read_redhat_files(self,redhatjsonfilelist):
-        retval=self.check_for_changes(fname=redhatjson)
+    def assign_if_present(self,vulnfieldname,inputfieldname,vulnobj,inputobj,operation=None):
+        if vulnobj.__contains__(vulnfieldname):
+            if operation == 'append':
+                inputobj[inputfieldname].append(vulnobj[vulnfieldname])
+            else:
+                inputobj[inputfieldname]=vulnobj[vulnfieldname]
+            
+    def read_redhat_files(self,cvexml):
         retval,self.resObj.resultdict=self.read_store(self.vulnstore,self.resObj.resultdict)
-        if initstore == 1:
-            for redhatjson in toupdate:
-                rjobj=OrderedDict()
-                retval,rjobj=self.read_store(redhatjson,rjobj)
-                if retval != 0:
-                    sys.exit(-1)
-                for rj in rjobj:
-                    inputs=dict()
-                    inputs['cveid']=None
-                    inputs['cveurl']=None
-                    inputs['cvescore']=None
-                    inputs['affectedproducts']=None
-                    inputs['descriptions']=list()
-                    inputs['details']=None
-                    inputs['mitigation']=None
-                    inputs['nvddescriptions']=None
-                    inputs['nvdrefs']=None
-                    inputs['lastmodifieddate']=None
 
-                    self.resObj.add_result(**inputs)
+        try:
+            tree=ET.parse('cvemap.xml')
+            root=tree.getroot()
+        except:
+            print "Could not parse cvemap.xml.";
+            sys.exit(-1)
+    
+        vulndict=OrderedDict()
+        for child in root:
+            cveid=child.attrib['name']
+            vulndict[cveid]=OrderedDict()
+            for field in child:
+                if field.tag not in ['UpstreamFix','Mitigation','PublicDate','CVSS3','Bugzilla','ThreatSeverity','Details','PackageState','AffectedRelease']:
+                    continue
+                if field.tag == 'CVSS3':
+                    if field.attrib['status'] !='verified':
+                        continue
+                    if field[0].tag == 'CVSS3BaseScore':
+                        vulndict[cveid]['score']=field[0].text
+                        continue
+                if field.tag == 'Bugzilla':
+                    vulndict[cveid]['bugzilla-url']=field.attrib['url']
+                if field.tag == 'Details':
+                    vulndict[cveid]['source']=field.attrib['source']
+                if field.tag == 'PackageState':
+                    if not vulndict[cveid].__contains__('PackageState'):
+                        vulndict[cveid]['PackageState']=list()
+                    psdict=dict()
+                    for f in field:
+                        psdict[f.tag]=f.text
+                    vulndict[cveid]['PackageState'].append(psdict)
+                    continue
+                if field.tag == 'AffectedRelease':
+                    if not vulndict[cveid].__contains__('AffectedRelease'):
+                        vulndict[cveid]['AffectedRelease']=list()
+                    af=dict()
+                    af['cpe']=field.attrib['cpe']
+                    for f in field:
+                        af[f.tag]=f.text
+                        if f.tag == 'Advisory':
+                            af['advisory_url']=f.attrib['url']
+                    vulndict[cveid]['AffectedRelease'].append(af)
+                    continue
+                vulndict[cveid][field.tag]=field.text
+            for cveid, cveobj in vulndict.iteritems():
+                inputs=dict()
+                inputs['cveid']=cveid
+                inputs['cveurl']=None
+                inputs['cvescore']=None
+                self.assign_if_present('score','cvescore',cveobj,inputs)
+                inputs['affectedproducts']=None
+                inputs['descriptions']=list()
+                self.assign_if_present('Details','descriptions',cveobj,inputs,'append')
+                inputs['details']=None
+                inputs['mitigation']=None
+                self.assign_if_present('Mitigation','mitigation',cveobj,inputs)
+                inputs['nvddescriptions']=None
+                inputs['nvdrefs']=None
+                inputs['lastmodifieddate']=None
+                self.resObj.add_result(**inputs)
 
             try:
                 self.write_store(self.vulnstore,self.resObj.resultdict)
@@ -520,17 +571,16 @@ class CVECheck:
         except:
             return(-1,sha256sum)
             
-    
     def get_checksum(self,fname):
         cksums=OrderedDict()
-        try:
-            with open(self.cksumfile,'r') as infile:
-                lines=infile.readlines()
-            for line in lines:
-                cksums[line.split(' ')[1].split('\n')[0]]=line.split(' ')[0]
-            if cksums.__contains__(fname):
-                return (0,cksums[fname])
-            return (-1,None)
+        with open(self.cksumfile,'r') as infile:
+            lines=infile.readlines()
+        for line in lines:
+            cksums[line.split(' ')[1].split('\n')[0]]=line.split(' ')[0]
+        
+        if cksums.__contains__(fname):
+            return (0,cksums[fname])
+        return (-1,None)
 
     def check_for_changes(self,url=None,fname=None):
         if url != None:
@@ -573,10 +623,12 @@ class CVECheck:
     def update_store(self):
         #first RedHat
         retval,cvexml=self.update_from_redhat(self.sources['redhat'])
-        self.read_redhat_files(jsonfilelist)
+        if retval == True:
+            self.read_redhat_files(cvexml)
         #now NVD
         retval,channelinfo=self.update_from_nvd()
-        self.read_nvd_files(channelinfo,retval)
+        if retval == True:
+            self.read_nvd_files(channelinfo,retval)
 
     def read_store(self,jsonfile,jsonobj):
         try:
