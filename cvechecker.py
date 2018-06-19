@@ -33,7 +33,7 @@ class CVE:
         self.lastmodifieddate=None
         self.isnew=True
 
-    def update_cve(self,cveid, cveurl,cvescore,affectedproducts,descriptions,details,mitigation,nvddescriptions,lastmodifieddate):
+    def update_cve(self,cveid, cveurl,cvescore,affectedproducts,details,mitigation,nvddescriptions,lastmodifieddate):
         pass
 
 class Result:
@@ -48,10 +48,12 @@ class Result:
         self.scoredefs['Critical']={'high':10.0, 'low':9.0}
         self.scoredefs['Missing']={'high':11.0, 'low':11.0}
     
-    def add_result(self, cveid, cveurl, cvescore, affectedproducts,descriptions,details, mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
+    def add_result(self, cveid, cveurl, bugzilla_desc, bugzilla_url, cvescore, affectedproducts,details, mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
         if self.resultdict.__contains__(cveid):
-            if descriptions != None:
-                self.resultdict[cveid]['descriptions']=descriptions
+            if bugzilla_desc != None:
+                self.resultdict[cveid]['bugzilla_desc']=bugzilla_desc
+            if bugzilla_url != None:
+                self.resultdict[cveid]['bugzilla_url']=bugzilla_desc
             if details != None:
                 self.resultdict[cveid]['details']=details
             if mitigation != None:
@@ -94,10 +96,13 @@ class Result:
             self.resultdict[cveid]=OrderedDict()
             self.resultdict[cveid]['fresh']=True
             self.resultdict[cveid]['affectedproducts']=dict()
-            self.resultdict[cveid]['descriptions']=list()
             self.resultdict[cveid]['nvddescriptions']=list()
             self.resultdict[cveid]['nvdrefs']=list()
-            self.resultdict[cveid]['details']=list()
+
+            if bugzilla_desc != None:
+                self.resultdict[cveid]['bugzilla_desc']=bugzilla_desc
+            if bugzilla_url != None:
+                self.resultdict[cveid]['bugzilla_url']=bugzilla_desc
             
             if cvescore != None:
                 self.resultdict[cveid]['score']=cvescore
@@ -107,8 +112,6 @@ class Result:
             self.resultdict[cveid]['muteddate']=''
             if affectedproducts != None:
                 self.resultdict[cveid]['affectedproducts']=affectedproducts
-            if descriptions != None:
-                self.resultdict[cveid]['descriptions']=descriptions
             if nvddescriptions != None:
                 self.resultdict[cveid]['nvddescriptions']=nvddescriptions
             if nvdrefs != None:
@@ -202,8 +205,8 @@ class Result:
                 mutecount+=1
                 continue
         #if len(self.resultdict)!= 0 and len(self.resultdict)>mutecount:
-            if len(self.resultdict[key]['descriptions']) != 0:
-                hdr=self.resultdict[key]['descriptions'][0].split('\n')[1]
+            if len(self.resultdict[key]['bugzilla_desc']) != 0:
+                hdr=self.resultdict[key]['bugzilla_desc'].split('\n')[1]
             else:
                 hdr=key
             print "\n"
@@ -211,7 +214,7 @@ class Result:
             hdrlen=len(hdr)
             for i in range(0,hdrlen):
                 sys.stdout.write('=')
-            print "\nhttps://nvd.nist.gov/vuln/detail/"+hdr+"\n"
+            print "\nhttps://nvd.nist.gov/vuln/detail/"+key+"\n"
             if val['fresh'] == True:
                 print "Status: Fresh    "
             else:
@@ -229,13 +232,13 @@ class Result:
             print "----------------"
             rhinfoavailable=False
 
-            if len(self.resultdict[key]['descriptions']) != 0:
-                rhinfoavailable=True
-
             if len(self.resultdict[key]['details']) != 0:
                 rhinfoavailable=True
-                for desc in self.resultdict[key]['details']:
-                    print desc
+                print self.resultdict[key]['details']
+
+            if len(self.resultdict[key]['bugzilla_desc']) != 0:
+                rhinfoavailable=True
+                print self.resultdict[key]['bugzilla_desc']
 
             fixme=1
             if fixme:
@@ -398,9 +401,10 @@ class CVECheck:
                 inputs=dict()
                 inputs['cveid']=None
                 inputs['cveurl']=None
+                inputs['bugzilla_desc']=None
+                inputs['bugzilla_url']=None
                 inputs['cvescore']=None
                 inputs['affectedproducts']=dict()
-                inputs['descriptions']=None
                 inputs['details']=None
                 inputs['mitigation']=None
                 inputs['nvddescriptions']=list()
@@ -485,9 +489,17 @@ class CVECheck:
     def assign_if_present(self,vulnfieldname,inputfieldname,vulnobj,inputobj,operation=None):
         if vulnobj.__contains__(vulnfieldname):
             if operation == 'append':
-                inputobj[inputfieldname].append(vulnobj[vulnfieldname])
+                if not inputobj.__contains__(inputfieldname):
+                    inputobj[inputfieldname]=list()
+                for val in vulnobj[vulnfieldname]:
+                    inputobj[inputfieldname].append(val)
             else:
                 inputobj[inputfieldname]=vulnobj[vulnfieldname]
+        else:
+            if operation == 'append':
+                inputobj[inputfieldname]=list()
+            else:
+                inputobj[inputfieldname]=None
             
     def read_redhat_files(self,cvexml):
         retval,self.resObj.resultdict=self.read_store(self.vulnstore,self.resObj.resultdict)
@@ -513,7 +525,7 @@ class CVECheck:
                         vulndict[cveid]['score']=field[0].text
                         continue
                 if field.tag == 'Bugzilla':
-                    vulndict[cveid]['bugzilla-url']=field.attrib['url']
+                    vulndict[cveid]['bugzilla_url']=field.attrib['url']
                 if field.tag == 'Details':
                     vulndict[cveid]['source']=field.attrib['source']
                 if field.tag == 'PackageState':
@@ -536,31 +548,29 @@ class CVECheck:
                     vulndict[cveid]['AffectedRelease'].append(af)
                     continue
                 vulndict[cveid][field.tag]=field.text
-            for cveid, cveobj in vulndict.iteritems():
-                inputs=dict()
-                inputs['cveid']=cveid
-                inputs['cveurl']=None
-                inputs['cvescore']=None
-                self.assign_if_present('score','cvescore',cveobj,inputs)
-                inputs['affectedproducts']=None
-                inputs['descriptions']=list()
-                self.assign_if_present('Details','descriptions',cveobj,inputs,'append')
-                inputs['details']=None
-                inputs['mitigation']=None
-                self.assign_if_present('Mitigation','mitigation',cveobj,inputs)
-                inputs['nvddescriptions']=None
-                inputs['nvdrefs']=None
-                inputs['lastmodifieddate']=None
-                self.resObj.add_result(**inputs)
+        for cveid, cveobj in vulndict.iteritems():
+            inputs=dict()
+            inputs['cveid']=cveid
+            inputs['cveurl']=None
+            inputs['affectedproducts']=None
+            inputs['affectedproducts']=None
+            self.assign_if_present('Bugzilla','bugzilla_desc',cveobj,inputs)
+            self.assign_if_present('bugzilla_url','bugzilla_url',cveobj,inputs)
+            self.assign_if_present('score','cvescore',cveobj,inputs)
+            self.assign_if_present('Details','details',cveobj,inputs)
+            inputs['mitigation']=None
+            self.assign_if_present('Mitigation','mitigation',cveobj,inputs)
+            inputs['nvddescriptions']=None
+            inputs['nvdrefs']=None
+            inputs['lastmodifieddate']=None
+            self.resObj.add_result(**inputs)
 
-            try:
-                self.write_store(self.vulnstore,self.resObj.resultdict)
-            except:
-                print 'Fatal error writing output into local vuln store file'
-                sys.exit(-1)
-            return
-        else: # nothing to do here. resultdict has been initialized from vuln object directly, and there are no more changes.
-            return
+        try:
+            self.write_store(self.vulnstore,self.resObj.resultdict)
+        except:
+            print 'Fatal error writing output into local vuln store file'
+            sys.exit(-1)
+        return
     
     def compute_checksum(self,fname):
         try:
