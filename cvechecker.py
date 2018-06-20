@@ -53,7 +53,7 @@ class Result:
             if bugzilla_desc != None:
                 self.resultdict[cveid]['bugzilla_desc']=bugzilla_desc
             if bugzilla_url != None:
-                self.resultdict[cveid]['bugzilla_url']=bugzilla_desc
+                self.resultdict[cveid]['bugzilla_url']=bugzilla_url
             if details != None:
                 self.resultdict[cveid]['details']=details
             if mitigation != None:
@@ -235,10 +235,6 @@ class Result:
             if len(self.resultdict[key]['details']) != 0:
                 rhinfoavailable=True
                 print self.resultdict[key]['details']
-
-            if len(self.resultdict[key]['bugzilla_desc']) != 0:
-                rhinfoavailable=True
-                print self.resultdict[key]['bugzilla_desc']
 
             fixme=1
             if fixme:
@@ -532,6 +528,7 @@ class CVECheck:
                     if not vulndict[cveid].__contains__('PackageState'):
                         vulndict[cveid]['PackageState']=list()
                     psdict=dict()
+                    psdict['cpe']=field.attrib['cpe']
                     for f in field:
                         psdict[f.tag]=f.text
                     vulndict[cveid]['PackageState'].append(psdict)
@@ -558,6 +555,7 @@ class CVECheck:
             self.assign_if_present('bugzilla_url','bugzilla_url',cveobj,inputs)
             self.assign_if_present('score','cvescore',cveobj,inputs)
             self.assign_if_present('Details','details',cveobj,inputs)
+            
             inputs['mitigation']=None
             self.assign_if_present('Mitigation','mitigation',cveobj,inputs)
             inputs['nvddescriptions']=None

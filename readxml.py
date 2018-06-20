@@ -33,6 +33,7 @@ for child in root:
             if not vulndict[cveid].__contains__('PackageState'):
                 vulndict[cveid]['PackageState']=list()
             psdict=dict()
+            psdict['cpe']=field.attrib['cpe']
             for f in field:
                 psdict[f.tag]=f.text
             vulndict[cveid]['PackageState'].append(psdict)
