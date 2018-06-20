@@ -102,7 +102,7 @@ class Result:
             if bugzilla_desc != None:
                 self.resultdict[cveid]['bugzilla_desc']=bugzilla_desc
             if bugzilla_url != None:
-                self.resultdict[cveid]['bugzilla_url']=bugzilla_desc
+                self.resultdict[cveid]['bugzilla_url']=bugzilla_url
             
             if cvescore != None:
                 self.resultdict[cveid]['score']=cvescore
