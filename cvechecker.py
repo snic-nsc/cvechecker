@@ -101,6 +101,10 @@ class Result:
             self.resultdict[cveid]['nvddescriptions']=list()
             self.resultdict[cveid]['nvdrefs']=list()
             self.resultdict[cveid]['redhat_info']=dict()
+            self.resultdict[cveid]['bugzilla_url']=None
+            self.resultdict[cveid]['bugzilla_desc']=None
+            self.resultdict[cveid]['details']=None
+        
             if redhat_info != None:
                 self.resultdict[cveid]['redhat_info']=redhat_info
 
@@ -209,12 +213,11 @@ class Result:
             if self.resultdict[key]['mute'] == mutestate:
                 mutecount+=1
                 continue
-        #if len(self.resultdict)!= 0 and len(self.resultdict)>mutecount:
-            if len(self.resultdict[key]['bugzilla_desc']) != 0:
+            if self.resultdict[key]['bugzilla_desc'] != None:
                 hdr=self.resultdict[key]['bugzilla_desc'].split('\n')[1]
             else:
                 hdr=key
-            print "\n"
+            print "---BEGIN REPORT---"
             print hdr
             hdrlen=len(hdr)
             for i in range(0,hdrlen):
@@ -237,7 +240,7 @@ class Result:
             print "----------------"
             rhinfoavailable=False
 
-            if len(self.resultdict[key]['details']) != 0:
+            if self.resultdict[key]['details'] != None:
                 rhinfoavailable=True
                 print self.resultdict[key]['details']
 
@@ -299,6 +302,7 @@ class Result:
             print ""
             for url in val['nvdrefs']:
                 print "%s    "%(url)
+            print "---END REPORT---"
 
 class CVECheck:
     def __init__(self):
