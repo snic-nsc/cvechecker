@@ -48,8 +48,10 @@ class Result:
         self.scoredefs['Critical']={'high':10.0, 'low':9.0}
         self.scoredefs['Missing']={'high':11.0, 'low':11.0}
     
-    def add_result(self, cveid, cveurl, bugzilla_desc, bugzilla_url, cvescore, affectedproducts,details, mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
+    def add_result(self, cveid, cveurl, bugzilla_desc, bugzilla_url, cvescore, affectedproducts,details, redhat_info,mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
         if self.resultdict.__contains__(cveid):
+            if redhat_info != None:
+                self.resultdict[cveid]['redhat_info']=redhat_info
             if bugzilla_desc != None:
                 self.resultdict[cveid]['bugzilla_desc']=bugzilla_desc
             if bugzilla_url != None:
@@ -98,6 +100,9 @@ class Result:
             self.resultdict[cveid]['affectedproducts']=dict()
             self.resultdict[cveid]['nvddescriptions']=list()
             self.resultdict[cveid]['nvdrefs']=list()
+            self.resultdict[cveid]['redhat_info']=dict()
+            if redhat_info != None:
+                self.resultdict[cveid]['redhat_info']=redhat_info
 
             if bugzilla_desc != None:
                 self.resultdict[cveid]['bugzilla_desc']=bugzilla_desc
@@ -236,13 +241,32 @@ class Result:
                 rhinfoavailable=True
                 print self.resultdict[key]['details']
 
-            fixme=1
-            if fixme:
+            if self.resultdict[key]['redhat_info'].__contains__('PackageState'):
                 rhinfoavailable=True
+
+            if  rhinfoavailable==True:
                 print ""
                 print "Redhat Platform info"
                 print "--------------------"
                 print ""
+                print "Package State"
+                print "-------------"
+                if len(self.resultdict[key]['redhat_info']['PackageState']) >0:
+                    for match in self.resultdict[key]['redhat_info']['PackageState']:
+                        for test in ['ProductName','PackageName','FixState']:
+                            if match.__contains__(test):
+                                print "%s: %s"%(test,match[test])
+                        print "\n"
+            if self.resultdict[key]['redhat_info'].__contains__('AffectedRelease'):
+                if len(self.resultdict[key]['redhat_info']['AffectedRelease']) >0:
+                    print ""
+                    print "Affected Package Info"
+                    print "---------------------"
+                    for match in self.resultdict[key]['redhat_info']['AffectedRelease']:
+                        for test in ['ProductName','Package','advisory_url']:
+                            if match.__contains__(test):
+                                print "%s: %s"%(test,match[test])
+                        print "\n"
 
             if rhinfoavailable == False:
                 print "Nil"
@@ -402,6 +426,7 @@ class CVECheck:
                 inputs['cvescore']=None
                 inputs['affectedproducts']=dict()
                 inputs['details']=None
+                inputs['redhat_info']=None
                 inputs['mitigation']=None
                 inputs['nvddescriptions']=list()
                 inputs['nvdrefs']=list()
@@ -550,12 +575,17 @@ class CVECheck:
             inputs['cveid']=cveid
             inputs['cveurl']=None
             inputs['affectedproducts']=None
-            inputs['affectedproducts']=None
             self.assign_if_present('Bugzilla','bugzilla_desc',cveobj,inputs)
             self.assign_if_present('bugzilla_url','bugzilla_url',cveobj,inputs)
             self.assign_if_present('score','cvescore',cveobj,inputs)
             self.assign_if_present('Details','details',cveobj,inputs)
-            
+            inputs['redhat_info']=dict()
+            inputs['redhat_info']['PackageState']=list() 
+            inputs['redhat_info']['AffectedRelease']=list()
+            if cveobj.__contains__('AffectedRelease'):
+                inputs['redhat_info']['AffectedRelease']=cveobj['AffectedRelease']
+            if cveobj.__contains__('PackageState'):
+                inputs['redhat_info']['PackageState']=cveobj['PackageState']
             inputs['mitigation']=None
             self.assign_if_present('Mitigation','mitigation',cveobj,inputs)
             inputs['nvddescriptions']=None
