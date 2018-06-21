@@ -145,8 +145,12 @@ class Result:
                 numfails=0
                 for score in scores:
                     scorezone=self.scoredefs[score]
-                    if val['score'] < scorezone['low'] or val['score'] > scorezone['high']:
-                        numfails+=1
+                    try:
+                        if val['score'] < scorezone['low'] or val['score'] > scorezone['high']:
+                            numfails+=1
+                    except:
+                        print key,val
+                        sys.exit(-1)
                 if numfails == len(scores):
                     #this entry fails all specified score requirements
                     continue
@@ -574,6 +578,9 @@ class CVECheck:
                     vulndict[cveid]['AffectedRelease'].append(af)
                     continue
                 vulndict[cveid][field.tag]=field.text
+            if not vulndict[cveid].__contains__('score'):
+                vulndict[cveid]['score']=11
+
         for cveid, cveobj in vulndict.iteritems():
             inputs=dict()
             inputs['cveid']=cveid
