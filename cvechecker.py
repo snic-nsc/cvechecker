@@ -145,12 +145,8 @@ class Result:
                 numfails=0
                 for score in scores:
                     scorezone=self.scoredefs[score]
-                    try:
-                        if val['score'] < scorezone['low'] or val['score'] > scorezone['high']:
-                            numfails+=1
-                    except:
-                        print key,val
-                        sys.exit(-1)
+                    if val['score'] < scorezone['low'] or val['score'] > scorezone['high']:
+                        numfails+=1
                 if numfails == len(scores):
                     #this entry fails all specified score requirements
                     continue
