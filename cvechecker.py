@@ -579,6 +579,9 @@ class CVECheck:
                     vulndict[cveid]['AffectedRelease'].append(af)
                     continue
                 vulndict[cveid][field.tag]=field.text
+            if not vulndict[cveid].__contains__('score'):
+                vulndict[cveid]['score']=11
+
         for cveid, cveobj in vulndict.iteritems():
             inputs=dict()
             inputs['cveid']=cveid
