@@ -96,6 +96,9 @@ class Result:
 
         else:
             self.resultdict[cveid]=OrderedDict()
+            dtobj=datetime.datetime.utcnow()
+            dtstr=datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
+            self.resultdict[cveid]['insertiondate']=dtstr
             self.resultdict[cveid]['fresh']=True
             self.resultdict[cveid]['affectedproducts']=dict()
             self.resultdict[cveid]['nvddescriptions']=list()
@@ -218,6 +221,10 @@ class Result:
                 hdr=self.resultdict[key]['bugzilla_desc'].split('\n')[1]
             else:
                 hdr=key
+            if mutestate == 'off':
+                print 'Printing muted entry'
+                print 'Record insertion date: %s'%val['insertiondate']
+                print 'Record muted date: %s'%val['muteddate']
             print "---BEGIN REPORT---"
             print hdr
             hdrlen=len(hdr)
