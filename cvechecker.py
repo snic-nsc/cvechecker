@@ -96,6 +96,9 @@ class Result:
 
         else:
             self.resultdict[cveid]=OrderedDict()
+            dtobj=datetime.datetime.utcnow()
+            dtstr=datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
+            self.resultdict[cveid]['insertiondate']=dtstr
             self.resultdict[cveid]['fresh']=True
             self.resultdict[cveid]['affectedproducts']=dict()
             self.resultdict[cveid]['nvddescriptions']=list()
