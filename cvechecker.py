@@ -319,14 +319,14 @@ class Result:
             print "---END REPORT---"
 
 class CVECheck:
-    def __init__(self):
+    def __init__(self,dontconnect=False):
         self.sources=dict()
         self.resObj=Result()
         self.sources['redhat']='https://www.redhat.com/security/data/metrics/cvemap.xml'
         self.vulnstore='vulnstore.json'
         self.vulnobj=OrderedDict()
         self.cksumfile='sha256sums'
-        self.dontconnect=False
+        self.dontconnect=dontconnect
 
     def update_from_nvd(self):
         urlobj = urllib.URLopener()
@@ -355,35 +355,35 @@ class CVECheck:
 
         cksums=dict()
         try:
-            if self.dontconnect:
-                raise
-            for channel in channelinfo:
-                urlobj.retrieve(channelinfo[channel]['metaurl'],channelinfo[channel]['metafname'])
-                with open(channelinfo[channel]['metafname'],'r') as inp:
-                    lines=inp.readlines()
-                cksum=''
+            if not self.dontconnect:
+                for channel in channelinfo:
+                    urlobj.retrieve(channelinfo[channel]['metaurl'],channelinfo[channel]['metafname'])
+                    with open(channelinfo[channel]['metafname'],'r') as inp:
+                        lines=inp.readlines()
+                    cksum=''
 
-                for line in lines:
-                    if line.startswith('sha256'):
-                        cksum=(line.split(':')[1].split('\r')[0]).lower()
-                        break
+                    for line in lines:
+                        if line.startswith('sha256'):
+                            cksum=(line.split(':')[1].split('\r')[0]).lower()
+                            break
 
-                if cksum == '':
-                    raise
-                channelinfo[channel]['sha256sum']=cksum
+                    if cksum == '':
+                        raise
+                    channelinfo[channel]['sha256sum']=cksum
 
             #lets compare checksums
             changed=False
             for channel in channelinfo:
-                retval,sha256sum=self.compute_checksum(channel)
-                if sha256sum != channelinfo[channel]['sha256sum']:
-                    print "Update available for %s"%channelinfo[channel]
-                    urlobj.retrieve(channelinfo[channel]['url'],channelinfo[channel]['zip'])
-                    with gzip.GzipFile(channelinfo[channel]['zip'], 'rb') as f:
-                        fcontent = f.read()
-                    with open(channel,'wb') as out:
-                        out.write(fcontent)
-                    os.remove(channelinfo[channel]['zip'])
+                if not self.dontconnect:
+                    retval,sha256sum=self.compute_checksum(channel)
+                    if sha256sum != channelinfo[channel]['sha256sum']:
+                        print "Update available for %s"%channelinfo[channel]
+                        urlobj.retrieve(channelinfo[channel]['url'],channelinfo[channel]['zip'])
+                        with gzip.GzipFile(channelinfo[channel]['zip'], 'rb') as f:
+                            fcontent = f.read()
+                        with open(channel,'wb') as out:
+                            out.write(fcontent)
+                        os.remove(channelinfo[channel]['zip'])
 
                 #insert into sha256sums if lines not present
                 retval=self.check_for_changes(fname=channel)
@@ -503,7 +503,7 @@ class CVECheck:
     def update_from_redhat(self,url):
             url=self.sources['redhat']
             if self.dontconnect:
-                return(False,None)
+                return(False,'cvemap.xml')
             try:
                 urlobj = urllib.URLopener()
                 urlobj.retrieve(url,'cvemap.xml')
@@ -682,12 +682,11 @@ class CVECheck:
     def update_store(self):
         #first RedHat
         retval,cvexml=self.update_from_redhat(self.sources['redhat'])
-        if retval == True:
-            self.read_redhat_files(cvexml)
+        self.read_redhat_files(cvexml)
         #now NVD
         retval,channelinfo=self.update_from_nvd()
-        if retval == True:
-            self.read_nvd_files(channelinfo,retval)
+        #if retval == True:
+        self.read_nvd_files(channelinfo,retval)
 
     def read_store(self,jsonfile,jsonobj):
         try:
@@ -712,9 +711,11 @@ def main():
     aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the vulnerability store. Should be run regularly, preferably from a cron.')
     aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. --cve or --product filters may be used in conjuction with -d.')
     aparser.add_argument("-e", "--examples", type=str, nargs='?',default='none',help='display usage examples.')
+    aparser.add_argument("-n", "--no-update", type=str, nargs='?',default='none',help='do not connect to fetch updated CVE information (useful while debugging).')
 
     args=aparser.parse_args()
     cve=args.cve
+    noupdate=args.no_update
     severity=args.severity
     products=args.product
     mute=args.mute
@@ -728,7 +729,10 @@ def main():
     argsdict['products']=None
     argsdict['cves']=None
     resobj=Result()
-    cvcobj=CVECheck()
+    if noupdate != 'none':
+        cvcobj=CVECheck(True)
+    else:
+        cvcobj=CVECheck()
 
     if examples != 'none':
         print './cvechecker.py: Simply displays the help.'

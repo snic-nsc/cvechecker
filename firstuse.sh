@@ -1,4 +1,4 @@
 #!/bin/bash
 
 bash initnvd.sh
-rm -f *.json
+rm vulnstore.json
