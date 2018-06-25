@@ -220,6 +220,10 @@ class Result:
                 hdr=self.resultdict[key]['bugzilla_desc'].split('\n')[1]
             else:
                 hdr=key
+            if mutestate == 'off':
+                print 'Printing muted entry'
+                print 'Record insertion date: %s'%val['insertiondate']
+                print 'Record muted date: %s'%val['muteddate']
             print "---BEGIN REPORT---"
             print hdr
             hdrlen=len(hdr)
