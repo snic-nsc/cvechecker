@@ -50,6 +50,22 @@ class Result:
     
     def add_result(self, cveid, cveurl, bugzilla_desc, bugzilla_url, cvescore, affectedproducts,details, redhat_info,mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
         if self.resultdict.__contains__(cveid):
+            if lastmodifieddate != None:
+                self.resultdict[cveid]['lastmodifieddate']=lastmodifieddate
+                if self.resultdict[cveid]['muteddate'] != "":
+                    mtdstr=self.resultdict[cveid]['muteddate']
+                    mtdobj=datetime.datetime.strptime(mtdstr,'%Y-%m-%d %H:%M')
+                    modifdobj=datetime.datetime.strptime(lastmodifieddate,'%Y-%m-%d %H:%M')
+                    if modifdobj > mtdobj:
+                        self.resultdict[cveid]['muteddate']=''
+                        self.resultdict[cveid]['mute']='off'
+                        if not self.resultdict[cveid].__contains__('history'):
+                            self.resultdict[cveid]['history']=list()
+                        histitem=dict()
+                        for changeitem in ['redhat_info','bugzilla_desc','bugzilla_url','redhat_info','mitigation','nvddescriptions','nvdrefs','score']:
+                            histitem[changeitem]=self.resultdict[cveid][changeitem]
+                        self.resultdict[cveid]['history'].append(histitem)
+
             if redhat_info != None:
                 self.resultdict[cveid]['redhat_info']=redhat_info
             if bugzilla_desc != None:
@@ -70,15 +86,6 @@ class Result:
                         self.resultdict[cveid]['score']=11
                 else:
                     self.resultdict[cveid]['score']=cvescore
-            if lastmodifieddate != None:
-                self.resultdict[cveid]['lastmodifieddate']=lastmodifieddate
-                if self.resultdict[cveid]['muteddate'] != "":
-                    mtdstr=self.resultdict[cveid]['muteddate']
-                    mtdobj=datetime.datetime.strptime(mtdstr,'%Y-%m-%d %H:%M')
-                    modifdobj=datetime.datetime.strptime(lastmodifieddate,'%Y-%m-%d %H:%M')
-                    if modifdobj > mtdobj:
-                        self.resultdict[cveid]['muteddate']=''
-                        self.resultdict[cveid]['mute']='off'
                                     
             if affectedproducts != None:
                 for vendor,proddict in affectedproducts.iteritems():
