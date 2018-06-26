@@ -390,7 +390,6 @@ class CVECheck:
                 if retval != 0:
                     changed=True
                 if retval == -1:
-                    print "Catastrophic failure. FS error?"
                     sys.exit(-1)
         except:
             if not self.dontconnect:
@@ -403,7 +402,7 @@ class CVECheck:
                     if retval == -1:
                         raise
             except:
-                print "Unable to read local nvd files. Execute initnvd.sh"
+                print "NVD json files not found. Execute cvechecker.py -u and retry"
                 raise
             #this is the unupdated case. Local nvd files are available for reading
             return(0,channelinfo)
