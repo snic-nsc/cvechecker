@@ -19,7 +19,6 @@ port=`grep mailserver_port cvechecker.conf|cut -d '=' -f2`
 server=`grep mailserver_host cvechecker.conf|cut -d '=' -f2`
 
 python cvechecker.py -p $pkgs -k $keywords >alertout
-python cvechecker.py -c CVE-2015-7550 >alertout
 if [ -s alertout ]; then
 	bash splitreports.sh alertout "$sender" "$recips" $server $port
 fi
