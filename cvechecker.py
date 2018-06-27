@@ -49,12 +49,14 @@ class Result:
         self.scoredefs['Missing'] = {'high':11.0, 'low':11.0}
     
     def add_result(self, cveid, cveurl, bugzilla_desc, bugzilla_url, cvescore, affectedproducts,details, redhat_info,mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
+        updatemode=False
         if self.resultdict.__contains__(cveid):
             if lastmodifieddate != None:
                 lmtdobj = datetime.datetime.strptime(lastmodifieddate,'%Y-%m-%d %H:%M')
-                if self.resultdict[cveid]['lastmodifieddate'] != None: # we might have an update
+                if self.resultdict[cveid].__contains__('lastmodifieddate') and self.resultdict[cveid]['lastmodifieddate'] != None: # we might have an update
                     storedlmtdobj = datetime.datetime.strptime(self.resultdict[cveid]['lastmodifieddate'],'%Y-%m-%d %H:%M')
                     if storedlmtdobj < lmtdobj: #we indeed have an update
+                        updatemode=True
                         self.resultdict[cveid]['muteddate'] = ''
                         self.resultdict[cveid]['mute'] = 'off'
 
@@ -63,7 +65,7 @@ class Result:
                         changelog = dict()
                         histitem = dict()
                         changelog['score'] = False
-                        changelog['nvdescriptions'] = False
+                        changelog['nvddescriptions'] = False
                         changelog['nvdrefs'] = False
                         changelog['other'] = False
 
@@ -77,9 +79,9 @@ class Result:
 
                         if nvddescriptions != None:
                             if len(nvddescriptions) != 0:
-                                if len(self.resultdict[cveid]['nvddescriptions'] == 0:
+                                if len(self.resultdict[cveid]['nvddescriptions']) == 0:
                                     changelog['nvddescriptions'] = True
-                                    histitem['nvddescriptions]= list()
+                                    histitem['nvddescriptions'] = list()
                                 else:
                                     for description in nvddescriptions:
                                         found = False
@@ -94,7 +96,7 @@ class Result:
 
                         if nvdrefs != None:
                             if len(nvdrefs) != 0:
-                                if len(self.resultdict[cveid]['nvdrefs'] == 0:
+                                if len(self.resultdict[cveid]['nvdrefs']) == 0:
                                     changelog['nvdrefs'] = True
                                     histitem['nvdrefs']= list()
                                 else:
@@ -138,7 +140,8 @@ class Result:
                     if not self.resultdict[cveid].__contains__('score'):
                         self.resultdict[cveid]['score'] = 11
                 else:
-                    self.resultdict[cveid]['score'] = cvescore
+                    if updatemode == True:
+                        self.resultdict[cveid]['score'] = cvescore
                                     
             if affectedproducts != None:
                 for vendor,proddict in affectedproducts.iteritems():
@@ -458,7 +461,7 @@ class CVECheck:
                 print "NVD json files not found. Execute cvechecker.py -u and retry"
                 raise
             #this is the unupdated case. Local nvd files are available for reading
-            return(0,channelinfo)
+            return(False,channelinfo)
         #this is the potentially updated case. Local nvd files are available for reading
         if changed == True:
             return(True,channelinfo)
@@ -471,9 +474,9 @@ class CVECheck:
                 pass
         except:
             print 'No vuln store file found. Initializing from whatever we have.'
-            retval = 1
-        if retval == 0:
-            #print 'Nothing has changed from the last invocation. Will read from local store and proceed'
+            retval = True
+        if retval == False:
+            print 'Nothing has changed from the last invocation. Will read from local store and proceed'
             retval,self.resObj.resultdict = self.read_store(self.vulnstore,self.resObj.resultdict)
             return
         
@@ -549,6 +552,8 @@ class CVECheck:
                     exceptioncount += 1
                     continue
         #print idxcount,basescorex,descx,datex
+        #print 'datex is %s'%(str(datex))
+        #print 'descx is %s'%(str(descx))
         print len(self.resObj.resultdict)
         self.write_store(self.vulnstore,self.resObj.resultdict)
                 
@@ -734,11 +739,19 @@ class CVECheck:
     def update_store(self):
         #first RedHat
         retval,cvexml = self.update_from_redhat(self.sources['redhat'])
-        self.read_redhat_files(cvexml)
+        if retval == True:
+            self.read_redhat_files(cvexml)
+        else:
+            if self.dontconnect == True:
+                self.read_redhat_files(cvexml)
+            
         #now NVD
         retval,channelinfo = self.update_from_nvd()
-        #if retval == True:
-        self.read_nvd_files(channelinfo,retval)
+        if retval == True:
+            self.read_nvd_files(channelinfo,retval)
+        else:
+            if self.dontconnect == True:
+                self.read_nvd_files(channelinfo,True)
 
     def read_store(self,jsonfile,jsonobj):
         try:
