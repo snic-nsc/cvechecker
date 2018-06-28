@@ -59,6 +59,7 @@ class Result:
                         updatemode=True
                         self.resultdict[cveid]['muteddate'] = ''
                         self.resultdict[cveid]['mute'] = 'off'
+                        self.resultdict[cveid]['status'] = 'Update'
 
                         #now to identify and note what's changed
 
@@ -162,7 +163,7 @@ class Result:
             dtobj = datetime.datetime.utcnow()
             dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
             self.resultdict[cveid]['insertiondate'] = dtstr
-            self.resultdict[cveid]['fresh'] = True
+            self.resultdict[cveid]['status'] = 'Fresh'
             self.resultdict[cveid]['affectedproducts'] = dict()
             self.resultdict[cveid]['nvddescriptions'] = list()
             self.resultdict[cveid]['nvdrefs'] = list()
@@ -275,9 +276,9 @@ class Result:
                 dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
                 if mute == 'on':
                     newresultdict[entry]['muteddate'] = dtstr
-                    newresultdict[entry]['fresh'] = False
+                    newresultdict[entry]['status'] = 'Seen'
                     self.resultdict[entry]['muteddate'] = dtstr
-                    self.resultdict[entry]['fresh'] = False
+                    self.resultdict[entry]['status'] = 'Seen'
                 else:
                     newresultdict[entry]['muteddate'] = ''
                     self.resultdict[entry]['muteddate'] = ''
@@ -312,10 +313,7 @@ class Result:
             for i in range(0,hdrlen):
                 sys.stdout.write('=')
             print "\nhttps://nvd.nist.gov/vuln/detail/"+key+"\n"
-            if val['fresh'] == True:
-                print "Status: Fresh    "
-            else:
-                print "Status: Update    "
+            print "Status: %s"%val['status']
             numericscore = self.resultdict[key]['score']
             for scoredef,rng in self.scoredefs.iteritems():
                 if numericscore > rng['high']:
@@ -797,6 +795,7 @@ def main():
     aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one of --product or --cve options') #mark results as seen or unseen
     aparser.add_argument("-n", "--no-update", type=str, nargs='?',default='none',help='do not connect to fetch updated CVE information (useful while debugging).')
     aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product, e.g. http_server
+    aparser.add_argument("-r", "--read-config", type=str, nargs='?',default='none',help='read package and keyword filter values from the configuration file. Additional filters may be provided on the command-line.')
     aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical". Needs to be used with --product.') #lookup by severity level
     aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the vulnerability store. Should be run regularly, preferably from a cron.')
 
@@ -811,6 +810,7 @@ def main():
     examples = args.examples
     keywords = args.keyword
     afterdate = args.after_date
+    readconfig = args.read_config
 
     argsdict = dict()
     argsdict['scores'] = None
@@ -848,13 +848,58 @@ def main():
 
 
     if products != 'none':
-        argsdict['products'] = products.split(',')
+        prods = products.split(',')
+        prods.sort()
+        argsdict['products'] = list()
+        for prod in prods:
+            if not argsdict['products'].__contains__(prod):
+                argsdict['products'].append(prod)
         cve = 'none'
 
     if keywords != 'none':
-        argsdict['keywords'] = keywords.split(',')
+        kwds = keywords.split(',')
+        argsdict['keywords'] = list()
+        for kwd in kwds:
+            if not argsdict['keywords'].__contains__(kwd):
+                argsdict['keywords'].append(kwd)
         cve = 'none'
 
+    if readconfig != 'none':
+        try:
+            f = open('cvechecker.conf','r')
+            lines = f.readlines()
+            f.close()
+            for line in lines:
+                if line.startswith('packages='):
+                    pkgs=line.split('\n')[0].split('=')[1].split(',')
+                    if len(pkgs) != 0 and pkgs != ['']:
+                        cve = 'none'
+                        products=''
+                        if argsdict['products'] != None:
+                            for pkg in argsdict['products']:
+                                pkgs.append(pkg)
+                        pkgs.sort()
+                        argsdict['products']=list()
+                        for pkg in pkgs:
+                            if not argsdict['products'].__contains__(pkg):
+                                argsdict['products'].append(pkg)
+                if line.startswith('keywords='):
+                    kwds=line.split('\n')[0].split('=')[1].split(',')
+                    if len(kwds) != 0 and kwds != ['']:
+                        keywords = ''
+                        cve = 'none'
+                        if argsdict['keywords'] != None:
+                            for kwd in argsdict['keywords']:
+                                kwds.append(kwd)
+                        kwds.sort()
+                        argsdict['keywords']=list()
+                        for kwd in kwds:
+                            if not argsdict['keywords'].__contains__(kwd):
+                                argsdict['keywords'].append(kwd)
+        except:
+            print 'cvechecker.conf file not present or contents unreadable'
+            sys.exit(-1)
+      
     if afterdate != 'none':
         try:
             dtcheck = datetime.datetime.strptime(afterdate,'%Y-%m-%d')
