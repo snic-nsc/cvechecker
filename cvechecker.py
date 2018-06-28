@@ -65,6 +65,8 @@ class Result:
 
                         changelog = dict()
                         histitem = dict()
+                        histitem['lastmodifieddate'] = self.resultdict[cveid]['lastmodifieddate']
+                        self.resultdict[cveid]['lastmodifieddate']=lastmodifieddate
                         changelog['score'] = False
                         changelog['nvddescriptions'] = False
                         changelog['nvdrefs'] = False
@@ -328,7 +330,11 @@ class Result:
             print "Info from Redhat"
             print "----------------"
             rhinfoavailable = False
-
+            if self.resultdict[key]['redhat_info']['score'] != 11:
+                if val['score'] != 11 and val['score'] != self.resultdict[key]['redhat_info']['score']:
+                    print 'Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE, but NVD notes %s. NVD is to be considered a more reliable source'%(self.resultdict[key]['redhat_info']['score'],val['score'])
+                else:
+                    print 'Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE.'%(self.resultdict[key]['redhat_info']['score'])
             if self.resultdict[key]['details'] != None:
                 rhinfoavailable = True
                 print self.resultdict[key]['details']
@@ -340,10 +346,10 @@ class Result:
                 print ""
                 print "Redhat Platform info"
                 print "--------------------"
-                print ""
-                print "Package State"
-                print "-------------"
                 if len(self.resultdict[key]['redhat_info']['PackageState']) >0:
+                    print ""
+                    print "Package State"
+                    print "-------------"
                     for match in self.resultdict[key]['redhat_info']['PackageState']:
                         for test in ['ProductName','PackageName','FixState']:
                             if match.__contains__(test):
@@ -391,6 +397,21 @@ class Result:
             print ""
             for url in val['nvdrefs']:
                 print "%s    "%(url)
+            if val['status'] == 'Update':
+                print "\nChangelog"
+                print "----------"
+                print ""
+                lastitem=len(val['history'])-1
+                changelog=val['history'][lastitem]['changelog']
+                if changelog['score'] == True:
+                    print "Present score: %s. Previous score: %s"%(val['score'],val['history'][lastitem]['score'])
+                if changelog['other'] == False:
+                    print "\nOther information has changed. Ex addition of CWE."
+                    print "Check for updates here: https://nvd.nist.gov/vuln/detail/%s#VulnChangeHistorySection"%(key)
+                if changelog['nvdrefs'] == True:
+                    print "\nReferences section updated. Old references follow\n"
+                    for url in val['history'][lastitem]['nvdrefs']:
+                        print "%s    "%(url)
             print "---END REPORT---"
 
 class CVECheck:
@@ -674,11 +695,12 @@ class CVECheck:
             inputs['affectedproducts'] = None
             self.assign_if_present('Bugzilla','bugzilla_desc',cveobj,inputs)
             self.assign_if_present('bugzilla_url','bugzilla_url',cveobj,inputs)
-            self.assign_if_present('score','cvescore',cveobj,inputs)
             self.assign_if_present('Details','details',cveobj,inputs)
             inputs['redhat_info'] = dict()
             inputs['redhat_info']['PackageState'] = list() 
             inputs['redhat_info']['AffectedRelease'] = list()
+            inputs['redhat_info']['score'] = cveobj['score']
+            inputs['cvescore'] = 11 # to not mess around with NVD scores.
             if cveobj.__contains__('AffectedRelease'):
                 inputs['redhat_info']['AffectedRelease'] = cveobj['AffectedRelease']
             if cveobj.__contains__('PackageState'):
@@ -748,7 +770,7 @@ class CVECheck:
                         outfile.write("%s %s\n"%(cksums[file],file))
                 return(1)
         except:
-            print "Could not look up old checksum. Will add"
+            print "Could not look up old checksum for file %s. Will add"%(fname)
             cksums[fname]= sha256sum
             with open('sha256sums','w') as outfile:
                 for file in cksums:
