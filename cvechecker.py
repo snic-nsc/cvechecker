@@ -330,43 +330,44 @@ class Result:
             print "Info from Redhat"
             print "----------------"
             rhinfoavailable = False
-            if self.resultdict[key]['redhat_info']['score'] != 11:
-                if val['score'] != 11 and val['score'] != self.resultdict[key]['redhat_info']['score']:
-                    print 'Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE, but NVD notes %s. NVD is to be considered a more reliable source'%(self.resultdict[key]['redhat_info']['score'],val['score'])
-                else:
-                    print 'Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE.'%(self.resultdict[key]['redhat_info']['score'])
             if self.resultdict[key]['details'] != None:
                 rhinfoavailable = True
                 print self.resultdict[key]['details']
+                if self.resultdict[key]['redhat_info']['score'] != 11:
+                    if val['score'] != 11 and val['score'] != self.resultdict[key]['redhat_info']['score']:
+                        print 'Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE, but NVD notes %s. NVD is to be considered a more reliable source'%(self.resultdict[key]['redhat_info']['score'],val['score'])
+                    else:
+                        print 'Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE.'%(self.resultdict[key]['redhat_info']['score'])
 
-            if self.resultdict[key]['redhat_info'].__contains__('PackageState'):
-                rhinfoavailable = True
+                rhinfoavailable = False
+                if self.resultdict[key]['redhat_info'].__contains__('PackageState'):
+                    rhinfoavailable = True
 
-            if  rhinfoavailable == True:
-                print ""
-                print "Redhat Platform info"
-                print "--------------------"
-                if len(self.resultdict[key]['redhat_info']['PackageState']) >0:
+                if  rhinfoavailable == True:
                     print ""
-                    print "Package State"
-                    print "-------------"
-                    for match in self.resultdict[key]['redhat_info']['PackageState']:
-                        for test in ['ProductName','PackageName','FixState']:
-                            if match.__contains__(test):
-                                print "%s: %s"%(test,match[test])
-                        print "\n"
-            if self.resultdict[key]['redhat_info'].__contains__('AffectedRelease'):
-                if len(self.resultdict[key]['redhat_info']['AffectedRelease']) >0:
-                    print ""
-                    print "Affected Package Info"
-                    print "---------------------"
-                    for match in self.resultdict[key]['redhat_info']['AffectedRelease']:
-                        for test in ['ProductName','Package','ReleaseDate','advisory_url']:
-                            if match.__contains__(test):
-                                print "%s: %s"%(test,match[test])
-                        print "\n"
+                    print "Redhat Platform info"
+                    print "--------------------"
+                    if len(self.resultdict[key]['redhat_info']['PackageState']) >0:
+                        print ""
+                        print "Package State"
+                        print "-------------"
+                        for match in self.resultdict[key]['redhat_info']['PackageState']:
+                            for test in ['ProductName','PackageName','FixState']:
+                                if match.__contains__(test):
+                                    print "%s: %s"%(test,match[test])
+                            print "\n"
+                if self.resultdict[key]['redhat_info'].__contains__('AffectedRelease'):
+                    if len(self.resultdict[key]['redhat_info']['AffectedRelease']) >0:
+                        print ""
+                        print "Affected Package Info"
+                        print "---------------------"
+                        for match in self.resultdict[key]['redhat_info']['AffectedRelease']:
+                            for test in ['ProductName','Package','ReleaseDate','advisory_url']:
+                                if match.__contains__(test):
+                                    print "%s: %s"%(test,match[test])
+                            print "\n"
 
-            if rhinfoavailable == False:
+            else:
                 print "Nil"
             print ""
             print "Info from NVD"
@@ -475,8 +476,9 @@ class CVECheck:
                     if sha256sum != channelinfo[channel]['sha256sum']:
                         print "Update available for %s"%channelinfo[channel]
                         urlobj.retrieve(channelinfo[channel]['url'],channelinfo[channel]['zip'])
-                        with gzip.GzipFile(channelinfo[channel]['zip'], 'rb') as f:
-                            fcontent = f.read()
+                        f=gzip.GzipFile(channelinfo[channel]['zip'], 'rb')
+                        fcontent = f.read()
+                        f.close()
                         with open(channel,'wb') as out:
                             out.write(fcontent)
                         os.remove(channelinfo[channel]['zip'])
@@ -689,6 +691,9 @@ class CVECheck:
                 vulndict[cveid]['score'] = 11
 
         for cveid, cveobj in vulndict.iteritems():
+            if not cveobj.__contains__('score'):
+		print 'yelling and screaming about %s not containing the score attrib.'%cveid
+		sys.exit(-1)
             inputs = dict()
             inputs['cveid'] = cveid
             inputs['cveurl'] = None
@@ -856,36 +861,6 @@ def main():
         print './cvechecker.py -k Intel,InfiniBand,AMD: Display CVEs with descriptions containing these keywords. Case-sensitive, to avoid too many false positives.'
         sys.exit(0)
 
-    if severity != 'none':
-        scores = severity.split(',')
-        for score in scores:
-            if score != 'None' and score != 'Low' and score != 'High' and score != 'Medium' and score != 'Critical' and score != 'Missing':
-                print 'Invalid severity level!'
-                sys.exit(-1)
-        if products == 'none':
-            print 'This option requires you to specify at least one product with the --product option'
-            sys.exit(-1)
-        cve = 'none'
-        argsdict['scores'] = scores
-
-
-    if products != 'none':
-        prods = products.split(',')
-        prods.sort()
-        argsdict['products'] = list()
-        for prod in prods:
-            if not argsdict['products'].__contains__(prod):
-                argsdict['products'].append(prod)
-        cve = 'none'
-
-    if keywords != 'none':
-        kwds = keywords.split(',')
-        argsdict['keywords'] = list()
-        for kwd in kwds:
-            if not argsdict['keywords'].__contains__(kwd):
-                argsdict['keywords'].append(kwd)
-        cve = 'none'
-
     if readconfig != 'none':
         try:
             f = open('cvechecker.conf','r')
@@ -921,6 +896,37 @@ def main():
         except:
             print 'cvechecker.conf file not present or contents unreadable'
             sys.exit(-1)
+
+    if severity != 'none':
+        scores = severity.split(',')
+        for score in scores:
+            if score != 'None' and score != 'Low' and score != 'High' and score != 'Medium' and score != 'Critical' and score != 'Missing':
+                print 'Invalid severity level!'
+                sys.exit(-1)
+        if products == 'none':
+            print 'This option requires you to specify at least one product with the --product option'
+            sys.exit(-1)
+        cve = 'none'
+        argsdict['scores'] = scores
+
+
+    if products != 'none':
+        prods = products.split(',')
+        prods.sort()
+        argsdict['products'] = list()
+        for prod in prods:
+            if not argsdict['products'].__contains__(prod):
+                argsdict['products'].append(prod)
+        cve = 'none'
+
+    if keywords != 'none':
+        kwds = keywords.split(',')
+        argsdict['keywords'] = list()
+        for kwd in kwds:
+            if not argsdict['keywords'].__contains__(kwd):
+                argsdict['keywords'].append(kwd)
+        cve = 'none'
+
       
     if afterdate != 'none':
         try:
