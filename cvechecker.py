@@ -40,7 +40,7 @@ class Result:
     def __init__(self):
         self.resultdict = dict()
         self.sentinel = 0
-        self.scoredefs = OrderedDict()
+        self.scoredefs = dict()
         self.scoredefs['None'] = {'high':0.0, 'low':0.0}
         self.scoredefs['Low'] = {'high':3.9, 'low':0.1}
         self.scoredefs['Medium'] = {'high':6.9, 'low':4.0}
@@ -158,7 +158,7 @@ class Result:
                                 continue
 
         else:
-            self.resultdict[cveid] = OrderedDict()
+            self.resultdict[cveid] = dict()
             dtobj = datetime.datetime.utcnow()
             dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
             self.resultdict[cveid]['insertiondate'] = dtstr
@@ -294,7 +294,7 @@ class Result:
 
     def print_result(self, mutestate='on'):
         cvelist = list()
-        proddict = OrderedDict()
+        proddict = dict()
         pkglist = list()
         scorelist = list()
         affectedproducts = dict()
@@ -424,7 +424,6 @@ class CVECheck:
         self.resObj = Result()
         self.sources['redhat'] = 'https://www.redhat.com/security/data/metrics/cvemap.xml'
         self.vulnstore = 'vulnstore.json'
-        self.vulnobj = OrderedDict()
         self.cksumfile = 'sha256sums'
         self.dontconnect = dontconnect
 
@@ -652,10 +651,10 @@ class CVECheck:
             print "Could not parse cvemap.xml.";
             sys.exit(-1)
     
-        vulndict = OrderedDict()
+        vulndict = dict()
         for child in root:
             cveid = child.attrib['name']
-            vulndict[cveid] = OrderedDict()
+            vulndict[cveid] = dict()
             for field in child:
                 if field.tag not in ['UpstreamFix','Mitigation','PublicDate','CVSS3','Bugzilla','ThreatSeverity','Details','PackageState','AffectedRelease']:
                     continue
