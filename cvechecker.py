@@ -49,14 +49,12 @@ class Result:
         self.scoredefs['Missing'] = {'high':11.0, 'low':11.0}
     
     def add_result(self, cveid, cveurl, bugzilla_desc, bugzilla_url, cvescore, affectedproducts,details, redhat_info,mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
-        updatemode=False
         if self.resultdict.__contains__(cveid):
             if lastmodifieddate != None:
                 lmtdobj = datetime.datetime.strptime(lastmodifieddate,'%Y-%m-%d %H:%M')
                 if self.resultdict[cveid].__contains__('lastmodifieddate') and self.resultdict[cveid]['lastmodifieddate'] != None: # we might have an update
                     storedlmtdobj = datetime.datetime.strptime(self.resultdict[cveid]['lastmodifieddate'],'%Y-%m-%d %H:%M')
                     if storedlmtdobj < lmtdobj: #we indeed have an update
-                        updatemode=True
                         self.resultdict[cveid]['muteddate'] = ''
                         self.resultdict[cveid]['mute'] = 'off'
                         self.resultdict[cveid]['status'] = 'Update'
@@ -143,8 +141,7 @@ class Result:
                     if not self.resultdict[cveid].__contains__('score'):
                         self.resultdict[cveid]['score'] = 11
                 else:
-                    if updatemode == True:
-                        self.resultdict[cveid]['score'] = cvescore
+                    self.resultdict[cveid]['score'] = cvescore
                                     
             if affectedproducts != None:
                 for vendor,proddict in affectedproducts.iteritems():
