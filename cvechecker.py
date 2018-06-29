@@ -707,7 +707,7 @@ class CVECheck:
             inputs['redhat_info'] = dict()
             inputs['redhat_info']['PackageState'] = list() 
             inputs['redhat_info']['AffectedRelease'] = list()
-            inputs['redhat_info']['score'] = cveobj['score']
+            inputs['redhat_info']['score'] = float(cveobj['score'])
             inputs['cvescore'] = 11 # to not mess around with NVD scores.
             if cveobj.__contains__('AffectedRelease'):
                 inputs['redhat_info']['AffectedRelease'] = cveobj['AffectedRelease']
