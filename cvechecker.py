@@ -861,6 +861,35 @@ def main():
         print './cvechecker.py -k Intel,InfiniBand,AMD: Display CVEs with descriptions containing these keywords. Case-sensitive, to avoid too many false positives.'
         sys.exit(0)
 
+    if severity != 'none':
+        scores = severity.split(',')
+        for score in scores:
+            if score != 'None' and score != 'Low' and score != 'High' and score != 'Medium' and score != 'Critical' and score != 'Missing':
+                print 'Invalid severity level!'
+                sys.exit(-1)
+        if products == 'none':
+            print 'This option requires you to specify at least one product with the --product option'
+            sys.exit(-1)
+        cve = 'none'
+        argsdict['scores'] = scores
+
+    if products != 'none':
+        prods = products.split(',')
+        prods.sort()
+        argsdict['products'] = list()
+        for prod in prods:
+            if not argsdict['products'].__contains__(prod):
+                argsdict['products'].append(prod)
+        cve = 'none'
+
+    if keywords != 'none':
+        kwds = keywords.split(',')
+        argsdict['keywords'] = list()
+        for kwd in kwds:
+            if not argsdict['keywords'].__contains__(kwd):
+                argsdict['keywords'].append(kwd)
+        cve = 'none'
+
     if readconfig != 'none':
         try:
             f = open('cvechecker.conf','r')
@@ -896,37 +925,6 @@ def main():
         except:
             print 'cvechecker.conf file not present or contents unreadable'
             sys.exit(-1)
-
-    if severity != 'none':
-        scores = severity.split(',')
-        for score in scores:
-            if score != 'None' and score != 'Low' and score != 'High' and score != 'Medium' and score != 'Critical' and score != 'Missing':
-                print 'Invalid severity level!'
-                sys.exit(-1)
-        if products == 'none':
-            print 'This option requires you to specify at least one product with the --product option'
-            sys.exit(-1)
-        cve = 'none'
-        argsdict['scores'] = scores
-
-
-    if products != 'none':
-        prods = products.split(',')
-        prods.sort()
-        argsdict['products'] = list()
-        for prod in prods:
-            if not argsdict['products'].__contains__(prod):
-                argsdict['products'].append(prod)
-        cve = 'none'
-
-    if keywords != 'none':
-        kwds = keywords.split(',')
-        argsdict['keywords'] = list()
-        for kwd in kwds:
-            if not argsdict['keywords'].__contains__(kwd):
-                argsdict['keywords'].append(kwd)
-        cve = 'none'
-
       
     if afterdate != 'none':
         try:
