@@ -11,19 +11,17 @@ if [ ! -s cvechecker.conf ]; then
     exit -1;
 fi
 
-pkgs=`grep packages cvechecker.conf|cut -d '=' -f2`
-keywords=`grep keywords cvechecker.conf|cut -d '=' -f2`
 recips=`grep alertmail_recipient cvechecker.conf|cut -d '=' -f2`
 sender=`grep alertmail_sender cvechecker.conf|cut -d '=' -f2`
 port=`grep mailserver_port cvechecker.conf|cut -d '=' -f2`
 server=`grep mailserver_host cvechecker.conf|cut -d '=' -f2`
 
-python cvechecker.py -p $pkgs -k $keywords >alertout
+python cvechecker.py -r >alertout
 if [ -s alertout ]; then
 	bash splitreports.sh alertout "$sender" "$recips" $server $port
 fi
 
 if [ -s alertout ]; then
-	python cvechecker.py -p $pkgs -k $keywords -m on
+	python cvechecker.py -r -m on
 fi
 rm cverun
