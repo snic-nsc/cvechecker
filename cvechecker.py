@@ -913,6 +913,7 @@ def main():
             lines = f.readlines()
             f.close()
             for line in lines:
+                line=line.translate(None,'\'\"')
                 if line.startswith('packages='):
                     pkgs=line.split('\n')[0].split('=')[1].split(',')
                     if len(pkgs) != 0 and pkgs != ['']:
