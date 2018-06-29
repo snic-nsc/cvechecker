@@ -202,72 +202,69 @@ class Result:
 
     def trim_result(self, products=None, keywords=None, scores=None, cves=None, afterdate=None, mute='none'):
         newresultdict = dict()
-        for key, val in self.resultdict.iteritems():
-            if cves != None:
-                match = 0
-                for cve in cves:
-                    if key == cve:
-                        match = 1
-                if match == 0:
-                    continue
-            if scores != None:
-                numfails = 0
-                for score in scores:
-                    scorezone=self.scoredefs[score]
-                    if val['score'] < scorezone['low'] or val['score'] > scorezone['high']:
-                        numfails += 1
-                if numfails == len(scores):
-                    #this entry fails all specified score requirements
-                    continue
-            found = False
-            if keywords != None:
-                for keyword in keywords:
-                    keyword += ' '
-                    if len(val['nvddescriptions']) > 0:
-                        for desc in val['nvddescriptions']:
-                            if desc.find(keyword) != -1:
-                                found = True
-                                break
-                    if found:
-                        break
-                if not found:
-                    # if a product-based search is also requested, we need to check for a product match before eliminating the result
-                    if products == None:
+        if cves != None:
+            for cve in cves:
+                newresultdict[cve]= self.resultdict[cve]
+        else:
+            for key, val in self.resultdict.iteritems():
+                if scores != None:
+                    numfails = 0
+                    for score in scores:
+                        scorezone=self.scoredefs[score]
+                        if val['score'] < scorezone['low'] or val['score'] > scorezone['high']:
+                            numfails += 1
+                    if numfails == len(scores):
+                        #this entry fails all specified score requirements
                         continue
+                found = False
+                if keywords != None:
+                    for keyword in keywords:
+                        keyword += ' '
+                        if len(val['nvddescriptions']) > 0:
+                            for desc in val['nvddescriptions']:
+                                if desc.find(keyword) != -1:
+                                    found = True
+                                    break
+                        if found:
+                            break
+                    if not found:
+                        # if a product-based search is also requested, we need to check for a product match before eliminating the result
+                        if products == None:
+                            continue
 
-            if products != None and found == False:
-                for product in products:
-                    for vendor,proddict in val['affectedproducts'].iteritems():
-                        for prodname, versionlist in proddict.iteritems():
-                            if prodname.startswith(product):
-                                found = True
+                if products != None and found == False:
+                    for product in products:
+                        for vendor,proddict in val['affectedproducts'].iteritems():
+                            for prodname, versionlist in proddict.iteritems():
+                                if prodname.startswith(product):
+                                    found = True
+                                    break
+                            if found:
                                 break
                         if found:
                             break
-                    if found:
-                        break
-                if not found:
-                    continue
-
-            if afterdate != None:
-                #first check for last-modified date. If absent, look for redhat affectedrelease; if that too isn't available, drop result.
-                if val.__contains__('lastmodifieddate'):
-                    dtobj = datetime.datetime.strptime(val['lastmodifieddate'],'%Y-%m-%d %H:%M')
-                    if not dtobj > afterdate:
+                    if not found:
                         continue
-                else:
-                    if val.__contains__('redhat_info') and val['redhat_info'].__contains__('AffectedRelease') and len(val['redhat_info']['AffectedRelease']) != 0:
-                        found=False
-                        for item in val['redhat_info']['AffectedRelease']:
-                            dtobj = datetime.datetime.strptime(item['ReleaseDate'],'%Y-%m-%dT%H:%M:%S')
-                            if dtobj > afterdate:
-                                found=True
-                        if found == False:
+
+                if afterdate != None:
+                    #first check for last-modified date. If absent, look for redhat affectedrelease; if that too isn't available, drop result.
+                    if val.__contains__('lastmodifieddate'):
+                        dtobj = datetime.datetime.strptime(val['lastmodifieddate'],'%Y-%m-%d %H:%M')
+                        if not dtobj > afterdate:
                             continue
                     else:
-                        #unable to determine if it's reasonably recent, so dropping, as we've been requested only to provide what is confirmed to be after a certain date
-                        continue
-            newresultdict[key] = val
+                        if val.__contains__('redhat_info') and val['redhat_info'].__contains__('AffectedRelease') and len(val['redhat_info']['AffectedRelease']) != 0:
+                            found=False
+                            for item in val['redhat_info']['AffectedRelease']:
+                                dtobj = datetime.datetime.strptime(item['ReleaseDate'],'%Y-%m-%dT%H:%M:%S')
+                                if dtobj > afterdate:
+                                    found=True
+                            if found == False:
+                                continue
+                        else:
+                            #unable to determine if it's reasonably recent, so dropping, as we've been requested only to provide what is confirmed to be after a certain date
+                            continue
+                newresultdict[key] = val
 
         #outside the loop
         if mute != 'none':

@@ -1,5 +1,7 @@
-usage: cvechecker.py [-h] [-c CVE] [-s SEVERITY] [-p PRODUCT] [-k KEYWORD]
-                     [-m MUTE] [-u [UPDATE]] [-d [DISP_MUTE]] [-e [EXAMPLES]]
+usage: cvechecker.py [-h] [-a [AFTER_DATE]] [-c CVE] [-d [DISP_MUTE]]
+                     [-e [EXAMPLES]] [-k KEYWORD] [-m MUTE] [-n [NO_UPDATE]]
+                     [-p PRODUCT] [-r [READ_CONFIG]] [-s SEVERITY]
+                     [-u [UPDATE]]
 
 A tool to fetch and update a local vulnerability store against select sources
 of vulnerability information. It can be queried for specific CVEs, by severity
@@ -8,16 +10,17 @@ one to "mute" alerts for onal words into the corpus.
 
 optional arguments:
   -h, --help            show this help message and exit
+  -a [AFTER_DATE], --after-date [AFTER_DATE]
+                        only list matches whose last modified date is after
+                        the given date. Date format YYYY-MM-DD.
   -c CVE, --cve CVE     output information about specified CVE or comma-
                         separated list of CVEs. Cannot be combined with any
                         other filter/option.
-  -s SEVERITY, --severity SEVERITY
-                        filter results by severity level. Valid levels are
-                        "None", "Low", "Medium", "High", and "Critical". Needs
-                        to be used with --product.
-  -p PRODUCT, --product PRODUCT
-                        filter results by specified product name or comma-
-                        separated list of products.
+  -d [DISP_MUTE], --disp-mute [DISP_MUTE]
+                        display muted entries. --cve or --product filters may
+                        be used in conjuction with -d.
+  -e [EXAMPLES], --examples [EXAMPLES]
+                        display usage examples.
   -k KEYWORD, --keyword KEYWORD
                         filter results by specified keyword/comma-separated
                         list of keywords in CVE description text from NVD. Can
@@ -25,11 +28,20 @@ optional arguments:
   -m MUTE, --mute MUTE  set mute on or off, to silence/unsilence reporting.
                         Must be used in combination with one of --product or
                         --cve options
+  -n [NO_UPDATE], --no-update [NO_UPDATE]
+                        do not connect to fetch updated CVE information
+                        (useful while debugging).
+  -p PRODUCT, --product PRODUCT
+                        filter results by specified product name or comma-
+                        separated list of products.
+  -r [READ_CONFIG], --read-config [READ_CONFIG]
+                        read package and keyword filter values from the
+                        configuration file. Additional filters may be provided
+                        on the command-line.
+  -s SEVERITY, --severity SEVERITY
+                        filter results by severity level. Valid levels are
+                        "None", "Low", "Medium", "High", and "Critical". Needs
+                        to be used with --product.
   -u [UPDATE], --update [UPDATE]
                         update the vulnerability store. Should be run
                         regularly, preferably from a cron.
-  -d [DISP_MUTE], --disp-mute [DISP_MUTE]
-                        display muted entries. --cve or --product filters may
-                        be used in conjuction with -d.
-  -e [EXAMPLES], --examples [EXAMPLES]
-                        display usage examples.

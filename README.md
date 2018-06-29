@@ -24,13 +24,18 @@
 
 ```
 [pchengi@esg-idx cvechecker]$ ./cvechecker.py -u
-Could not look up old checksum. Will add
-Could not look up old checksum. Will add
-Could not look up old checksum. Will add
-Could not look up old checksum. Will add
-Could not look up old checksum. Will add
-Could not look up old checksum. Will add
-29551
+Redhat CVE xml updated successfully.
+Update available for {'url': 'https://nvd.nist.gov/feeds/json/cve/1.0/nvdcve-1.0-2018.json.gz', 'sha256sum': '8522e47f82752ba18ed01a5bc23b3d5c89c5b171bfefc04c80f9d74276067b95', 'metaurl': 'https://nvd.nist.gov/feeds/json/cve/1.0/nvdcve-1.0-2018.meta', 'zip': 'CVE-2018.json.gz', 'metafname': 'CVE-2018.json.meta'}
+Could not look up old checksum for file CVE-2018.json. Will add
+Update available for {'url': 'https://nvd.nist.gov/feeds/json/cve/1.0/nvdcve-1.0-2017.json.gz', 'sha256sum': '8ee3c2267f9682a1cc4be9cdd9f43ecbd09b9f1a42da798a71e20f5439e6ecdb', 'metaurl': 'https://nvd.nist.gov/feeds/json/cve/1.0/nvdcve-1.0-2017.meta', 'zip': 'CVE-2017.json.gz', 'metafname': 'CVE-2017.json.meta'}
+Could not look up old checksum for file CVE-2017.json. Will add
+Update available for {'url': 'https://nvd.nist.gov/feeds/json/cve/1.0/nvdcve-1.0-2016.json.gz', 'sha256sum': '2195b5baf2eeb6694fd6c43d3ce73fe756e3471f049f680bef2fb7d365af8bac', 'metaurl': 'https://nvd.nist.gov/feeds/json/cve/1.0/nvdcve-1.0-2016.meta', 'zip': 'CVE-2016.json.gz', 'metafname': 'CVE-2016.json.meta'}
+Could not look up old checksum for file CVE-2016.json. Will add
+Update available for {'url': 'https://nvd.nist.gov/feeds/json/cve/1.0/nvdcve-1.0-2015.json.gz', 'sha256sum': 'bd2e495c7d897a075dba900b1f72b42f4793a2ad345ee50e55ee5970cb6b8ece', 'metaurl': 'https://nvd.nist.gov/feeds/json/cve/1.0/nvdcve-1.0-2015.meta', 'zip': 'CVE-2015.json.gz', 'metafname': 'CVE-2015.json.meta'}
+Could not look up old checksum for file CVE-2015.json. Will add
+Update available for {'url': 'https://nvd.nist.gov/feeds/json/cve/1.0/nvdcve-1.0-modified.json.gz', 'sha256sum': '3e9b7d9c5f40d9338b427941b232d91b2549ae7f8ff13372fddb0a859ff3cef1', 'metaurl': 'https://nvd.nist.gov/feeds/json/cve/1.0/nvdcve-1.0-modified.meta', 'zip': 'CVE-Modified.json.gz', 'metafname': 'CVE-Modified.json.meta'}
+Could not look up old checksum for file CVE-Modified.json. Will add
+48358
 ```
 - Execute ./cvechecker.py (without arguments), for help.
 - Execute ./cvechecker.py -e , to get examples for usage.
@@ -45,29 +50,20 @@ PATH=/usr/bin:/usr/local/bin:/usr/local/sbin:/bin
 15 * * * * cd /home/pchengi/cvechecker && python cvechecker.py -u >/dev/null 2>&1
 30 * * * * bash /home/pchengi/runcvechecker.sh
 ```
+- The runcvechecker.sh script, and other helper scripts (splitreports.sh, mailsend.py) are available in this repo.
+- Remember to setup the cvechecker.conf file with correct values (using cvechecker.conf.template as a template, for syntax etc) before running runcvechecker.sh.
 
-```
-[pchengi@datil ~]$ cat runcvechecker.sh 
-#!/bin/bash
-
-pkgs='http_server,tivoli,slurm,postgres,general_parallel_file_system,irods,torque_resource_manager,struts,java,linux_kernel,spectrum_protect,spectrum_scale,mariadb,mysql,nagios,munin,hadoop,zen,qemu,vm_virtualbox,fail2ban,bind'
-keywords='InfiniBand,Intel,AMD'
-
-cd cvechecker
-python cvechecker.py -p $pkgs -k $keywords
-python cvechecker.py -p $pkgs -k $keywords -m on
-```
-If you are looking up a product/keyword for the first time, or if you've never muted the results of your search, their status will show up as 'Fresh'; if the results have been muted at least once, any updates would result in the status saying 'Update', instead of 'Fresh'.
-
+- If you are looking up a product/keyword for the first time, or if you've never muted the results of your search, their status will show up as 'Fresh'; if the results have been muted, the status will reflect 'Seen', and if there's been any update since the last time it entered the system and/or muted, the status would say 'Update'.
 ```
 [pchengi@esg-idx cvechecker]$ ./cvechecker.py -p irods
-
-
+---BEGIN REPORT---
 CVE-2017-8799
 =============
+https://nvd.nist.gov/vuln/detail/CVE-2017-8799
 
-Status: Fresh    
+Status: Fresh
 Score 9.8 (Critical)
+Last Modification date: 2017-05-17 19:33
 
 Info from Redhat
 ----------------
@@ -90,4 +86,49 @@ References
 ----------
 
 https://github.com/irods/irods/issues/3452    
+CONFIRM    
+https://github.com/irods/irods/issues/3452    
+---END REPORT---
+```
+
+- After muting (./cvechecker.py -p irods -m on), you could display it by using the -d flag (display-muted); the output will note that this is a muted entry, and will note the date it was last muted on. The status is also shown as 'Seen'.
+
+```
+[pchengi@esg-idx cvechecker]$ ./cvechecker.py -p irods -d
+Printing muted entry
+Record insertion date: 2018-06-29 07:41
+Record muted date: 2018-06-29 07:47
+---BEGIN REPORT---
+CVE-2017-8799
+=============
+https://nvd.nist.gov/vuln/detail/CVE-2017-8799
+
+Status: Seen
+Score 9.8 (Critical)
+Last Modification date: 2017-05-17 19:33
+
+Info from Redhat
+----------------
+Nil
+
+Info from NVD
+-------------
+
+Untrusted input execution via igetwild in all iRODS versions before 4.1.11 and 4.2.1 allows other iRODS users (potentially anonymous) to execute remote shell commands via iRODS virtual pathnames. To exploit this vulnerability, a virtual iRODS pathname that includes a semicolon would be retrieved via igetwild. Because igetwild is a Bash script, the part of the pathname following the semicolon would be executed in the user's shell.
+
+Affected Products
+-----------------
+
+Vendor: irods
+
+        Product: irods
+        Affected Versions: 4.1.10, 4.2.0
+
+References
+----------
+
+https://github.com/irods/irods/issues/3452    
+CONFIRM    
+https://github.com/irods/irods/issues/3452    
+---END REPORT---
 ```
