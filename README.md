@@ -9,7 +9,8 @@
 # Requirements
 
 - Python 2.7.9+
-- If you want to run it on python 2.6.6 (Centos/RHEL6 standard), check out the c6 branch, and ensure you have python-argparse and python-simplejson RPMs installed on the system.
+- cvechecker has been tested and found to work both with python 2.6.6 (Centos/RHEL6 standard), and python 2.7.9+
+- Ensure you have the python-argparse and python-simplejson RPMs installed on the system.
 - If you are using a custom python installation, you need to have argparse and simplejson packages installed.
     - pip install -r requiredpackages
 
