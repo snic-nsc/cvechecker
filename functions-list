@@ -1,7 +1,7 @@
 usage: cvechecker.py [-h] [-a [AFTER_DATE]] [-c CVE] [-d [DISP_MUTE]]
                      [-e [EXAMPLES]] [-k KEYWORD] [-m MUTE] [-n [NO_UPDATE]]
                      [-p PRODUCT] [-r [READ_CONFIG]] [-s SEVERITY]
-                     [-u [UPDATE]]
+                     [-u [UPDATE]] [-x EXCLUDE]
 
 A tool to fetch and update a local vulnerability store against select sources
 of vulnerability information. It can be queried for specific CVEs, by severity
@@ -45,3 +45,7 @@ optional arguments:
   -u [UPDATE], --update [UPDATE]
                         update the vulnerability store. Should be run
                         regularly, preferably from a cron.
+  -x EXCLUDE, --exclude EXCLUDE
+                        suppress reporting for these packages; useful to avoid
+                        false-positive matches; ex matching xenmobile for xen
+                        filter.

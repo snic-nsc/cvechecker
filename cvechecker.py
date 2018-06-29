@@ -200,7 +200,7 @@ class Result:
                 self.resultdict[cveid]['lastmodifieddate'] = lastmodifieddate
             return
 
-    def trim_result(self, products=None, keywords=None, scores=None, cves=None, afterdate=None, mute='none'):
+    def trim_result(self, products=None, keywords=None, scores=None, cves=None, afterdate=None, excludes=None, mute='none'):
         newresultdict = dict()
         if cves != None:
             for cve in cves:
@@ -237,6 +237,14 @@ class Result:
                         for vendor,proddict in val['affectedproducts'].iteritems():
                             for prodname, versionlist in proddict.iteritems():
                                 if prodname.startswith(product):
+                                    if excludes != None:
+                                        excluded=False
+                                        for excl in excludes:
+                                            if prodname == excl:
+                                                excluded=True
+                                                break
+                                        if excluded == True:
+                                            continue
                                     found = True
                                     break
                             if found:
@@ -267,6 +275,7 @@ class Result:
                 newresultdict[key] = val
 
         #outside the loop
+        
         if mute != 'none':
             for entry in newresultdict:
                 newresultdict[entry]['mute'] = mute
@@ -822,6 +831,7 @@ def main():
     aparser.add_argument("-r", "--read-config", type=str, nargs='?',default='none',help='read package and keyword filter values from the configuration file. Additional filters may be provided on the command-line.')
     aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical". Needs to be used with --product.') #lookup by severity level
     aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the vulnerability store. Should be run regularly, preferably from a cron.')
+    aparser.add_argument("-x", "--exclude", type=str,default='none',help='suppress reporting for these packages; useful to avoid false-positive matches;  ex matching xenmobile for xen filter.') #exclude matches
 
     args = aparser.parse_args()
     cve = args.cve
@@ -832,6 +842,7 @@ def main():
     disp_mute = args.disp_mute
     update = args.update
     examples = args.examples
+    exclude = args.exclude
     keywords = args.keyword
     afterdate = args.after_date
     readconfig = args.read_config
@@ -842,6 +853,7 @@ def main():
     argsdict['cves'] = None
     argsdict['afterdate'] = None
     argsdict['keywords'] = None
+    argsdict['excludes'] = None
     resobj = Result()
     if noupdate != 'none':
         cvcobj = CVECheck(True)
@@ -887,6 +899,14 @@ def main():
                 argsdict['keywords'].append(kwd)
         cve = 'none'
 
+    if exclude != 'none':
+        excls = exclude.split(',')
+        argsdict['excludes'] = list()
+        for excl in excls:
+            if not argsdict['excludes'].__contains__(excl):
+                argsdict['excludes'].append(excl)
+        cve = 'none'
+
     if readconfig != 'none':
         try:
             f = open('cvechecker.conf','r')
@@ -919,8 +939,22 @@ def main():
                         for kwd in kwds:
                             if not argsdict['keywords'].__contains__(kwd):
                                 argsdict['keywords'].append(kwd)
+                if line.startswith('excludes='):
+                    excls=line.split('\n')[0].split('=')[1].split(',')
+                    if len(excls) != 0 and excls != ['']:
+                        excludes = ''
+                        cve = 'none'
+                        if argsdict['excludes'] != None:
+                            for excl in argsdict['excludes']:
+                                excls.append(excl)
+                        excls.sort()
+                        argsdict['excludes']=list()
+                        for excl in excls:
+                            if not argsdict['excludes'].__contains__(excl):
+                                argsdict['excludes'].append(excl)
         except:
             print 'cvechecker.conf file not present or contents unreadable'
+            raise
             sys.exit(-1)
       
     if afterdate != 'none':
@@ -955,6 +989,7 @@ def main():
         argsdict['products'] = None
         argsdict['keywords'] = None
         argsdict['afterdate'] = None
+        argsdict['excludes'] = None
 
     if len(sys.argv) == 1:
         aparser.print_help()

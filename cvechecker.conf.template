@@ -3,4 +3,5 @@ mailserver_port=25
 alertmail_sender=CVEChecker <blah@example.net>
 alertmail_recipient=someguy@example.net
 packages=linux_kernel,http_server,postgres,struts,java,solr
-keywords=InfiniBand,Intel,Amd
+keywords=InfiniBand,Intel,AMD
+excludes=
