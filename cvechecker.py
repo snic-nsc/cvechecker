@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Original author: pchengi@nsc.liu.se
 
 import codecs
