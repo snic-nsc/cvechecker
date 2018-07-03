@@ -15,6 +15,7 @@ import datetime
 import urllib.request, urllib.parse, urllib.error
 import gzip
 import os
+import difflib
 
 socket.setdefaulttimeout(30)
 
@@ -326,7 +327,22 @@ class Result:
             print("Score %s (%s)"%(numericscore,textscore))
             if val.__contains__('lastmodifieddate'):
                 print("Last Modification date: %s"%val['lastmodifieddate'])
-            #print "----------------"
+            if val['status'] == 'Update':
+                print("\nChangelog")
+                print("----------")
+                print("")
+                lastitem=len(val['history'])-1
+                changelog=val['history'][lastitem]['changelog']
+                if changelog['score'] == True:
+                    print("Present score: %s. Previous score: %s\n"%(val['score'],val['history'][lastitem]['score']))
+                if changelog['nvdrefs'] == True:
+                    print("References section updated. Diff follows\n")
+                    diff=difflib.unified_diff(val['history'][lastitem]['nvdrefs'],val['nvdrefs'],lineterm='')
+                    print('\n'.join(diff))
+                    print('\n')
+                if changelog['other'] == False:
+                    print("Other information has changed. Ex addition of CWE.")
+                    print("Check for updates here: https://nvd.nist.gov/vuln/detail/%s#VulnChangeHistorySection"%(key))
             print("")
             print("Info from Redhat")
             print("----------------")
@@ -399,21 +415,6 @@ class Result:
             print("")
             for url in val['nvdrefs']:
                 print("%s    "%(url))
-            if val['status'] == 'Update':
-                print("\nChangelog")
-                print("----------")
-                print("")
-                lastitem=len(val['history'])-1
-                changelog=val['history'][lastitem]['changelog']
-                if changelog['score'] == True:
-                    print("Present score: %s. Previous score: %s"%(val['score'],val['history'][lastitem]['score']))
-                if changelog['other'] == False:
-                    print("\nOther information has changed. Ex addition of CWE.")
-                    print("Check for updates here: https://nvd.nist.gov/vuln/detail/%s#VulnChangeHistorySection"%(key))
-                if changelog['nvdrefs'] == True:
-                    print("\nReferences section updated. Old references follow\n")
-                    for url in val['history'][lastitem]['nvdrefs']:
-                        print("%s    "%(url))
             print("---END REPORT---")
 
 class CVECheck:
@@ -519,8 +520,7 @@ class CVECheck:
             print('No vuln store file found. Initializing from whatever we have.')
             retval = True
         if retval == False:
-            print('Nothing has changed from the last invocation. Will read from local store and proceed')
-            retval,self.resObj.resultdict = self.read_store(self.vulnstore,self.resObj.resultdict)
+            print('Nothing has changed from the last invocation.')
             return
         
         exceptioncount = 0
@@ -641,7 +641,6 @@ class CVECheck:
                 inputobj[inputfieldname] = None
             
     def read_redhat_files(self,cvexml):
-        retval,self.resObj.resultdict = self.read_store(self.vulnstore,self.resObj.resultdict)
 
         try:
             tree = ET.parse('cvemap.xml')
@@ -783,15 +782,16 @@ class CVECheck:
                 return(1)
 
     def update_store(self):
-        #first RedHat
+        #first read in the vulnstore, so we don't accidentally forget what we've seen or muted
+        retval,self.resObj.resultdict = self.read_store(self.vulnstore,self.resObj.resultdict)
+        #next we check for updates from RedHat
         retval,cvexml = self.update_from_redhat(self.sources['redhat'])
         if retval == True:
             self.read_redhat_files(cvexml)
         else:
             if self.dontconnect == True:
                 self.read_redhat_files(cvexml)
-            
-        #now NVD
+        #lastly, updates from NVD
         retval,channelinfo = self.update_from_nvd()
         if retval == True:
             self.read_nvd_files(channelinfo,retval)
