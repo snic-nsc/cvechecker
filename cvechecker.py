@@ -340,8 +340,8 @@ class Result:
                     diff=difflib.unified_diff(val['history'][lastitem]['nvdrefs'],val['nvdrefs'],lineterm='')
                     print('\n'.join(diff))
                     print('\n')
-                if changelog['other'] == False:
-                    print("Other information has changed. Ex addition of CWE.")
+                if changelog['other'] == True:
+                    print("Information other than what is tracked by cvechecker, has been modified, e.g addition of CWE.")
                     print("Check for updates here: https://nvd.nist.gov/vuln/detail/%s#VulnChangeHistorySection"%(key))
             print("")
             print("Info from Redhat")
