@@ -463,7 +463,7 @@ class CVECheck:
 
                     for line in lines:
                         if line.startswith('sha256'):
-                            cksum = (line.split(':')[1].split('\r')[0]).lower()
+                            cksum = (line.split(':')[1].split('\n')[0]).lower()
                             break
 
                     if cksum == '':
