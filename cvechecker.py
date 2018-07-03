@@ -385,7 +385,10 @@ class Result:
                                 if match.__contains__(test):
                                     print "%s: %s"%(test,match[test])
                             print "\n"
-
+                if self.resultdict[key].__contains__('mitigation') and self.resultdict[key]['mitigation'] != None:
+                        print("Mitigation")
+                        print("----------")
+                        print("%s"%(self.resultdict[key]['mitigation']))
             else:
                 print "Nil"
             print ""
