@@ -13,6 +13,12 @@
 - If you are using a custom python installation, you need to have argparse and simplejson packages installed.
     - pip install -r requiredpackages
 
+# Python 2.7 support
+
+- Release v1.08-p2 of cvechecker is the last release for Python 2.7; active development will now only continue for Python 3.
+- Functionality-wise, release v1.08 (for python3) is exactly the same as release v1.08-p2 (for python2); for later tags, check the commit messages.
+- If there are any fixes for bugs present in the v1.08-p2 release, there will be a new tags which will have the -p2 designation.
+
 # Configuration and Deployment
 
 - CVE checker uses NVD vulnerability feeds (json) and Redhat cvemap.xml as sources to build the vulnerability store.
