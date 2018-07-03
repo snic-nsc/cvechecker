@@ -521,8 +521,7 @@ class CVECheck:
             print 'No vuln store file found. Initializing from whatever we have.'
             retval = True
         if retval == False:
-            print 'Nothing has changed from the last invocation. Will read from local store and proceed'
-            retval,self.resObj.resultdict = self.read_store(self.vulnstore,self.resObj.resultdict)
+            print 'Nothing has changed from the last invocation.'
             return
         
         exceptioncount = 0
@@ -643,7 +642,6 @@ class CVECheck:
                 inputobj[inputfieldname] = None
             
     def read_redhat_files(self,cvexml):
-        retval,self.resObj.resultdict = self.read_store(self.vulnstore,self.resObj.resultdict)
 
         try:
             tree = ET.parse('cvemap.xml')
@@ -786,15 +784,16 @@ class CVECheck:
                 return(1)
 
     def update_store(self):
-        #first RedHat
+        #first read in the vulnstore, so we don't accidentally forget what we've seen or muted
+        retval,self.resObj.resultdict = self.read_store(self.vulnstore,self.resObj.resultdict)
+        #next we check for updates from RedHat
         retval,cvexml = self.update_from_redhat(self.sources['redhat'])
         if retval == True:
             self.read_redhat_files(cvexml)
         else:
             if self.dontconnect == True:
                 self.read_redhat_files(cvexml)
-            
-        #now NVD
+        #lastly, updates from NVD
         retval,channelinfo = self.update_from_nvd()
         if retval == True:
             self.read_nvd_files(channelinfo,retval)
@@ -952,7 +951,6 @@ def main():
                                 argsdict['excludes'].append(excl)
         except:
             print 'cvechecker.conf file not present or contents unreadable'
-            raise
             sys.exit(-1)
       
     if afterdate != 'none':
