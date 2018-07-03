@@ -15,6 +15,7 @@ import datetime
 import urllib
 import gzip
 import os
+import difflib
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -328,7 +329,22 @@ class Result:
             print "Score %s (%s)"%(numericscore,textscore)
             if val.__contains__('lastmodifieddate'):
                 print "Last Modification date: %s"%val['lastmodifieddate']
-            #print "----------------"
+            if val['status'] == 'Update':
+                print "\nChangelog"
+                print "----------"
+                print ""
+                lastitem=len(val['history'])-1
+                changelog=val['history'][lastitem]['changelog']
+                if changelog['score'] == True:
+                    print "Present score: %s. Previous score: %s\n"%(val['score'],val['history'][lastitem]['score'])
+                if changelog['nvdrefs'] == True:
+                    print "References section updated. Diff follows\n"
+                    diff=difflib.unified_diff(val['history'][lastitem]['nvdrefs'],val['nvdrefs'],lineterm='')
+                    print '\n'.join(diff)
+                    print '\n'
+                if changelog['other'] == False:
+                    print "Other information has changed. Ex addition of CWE."
+                    print "Check for updates here: https://nvd.nist.gov/vuln/detail/%s#VulnChangeHistorySection"%(key)
             print ""
             print "Info from Redhat"
             print "----------------"
@@ -401,21 +417,6 @@ class Result:
             print ""
             for url in val['nvdrefs']:
                 print "%s    "%(url)
-            if val['status'] == 'Update':
-                print "\nChangelog"
-                print "----------"
-                print ""
-                lastitem=len(val['history'])-1
-                changelog=val['history'][lastitem]['changelog']
-                if changelog['score'] == True:
-                    print "Present score: %s. Previous score: %s"%(val['score'],val['history'][lastitem]['score'])
-                if changelog['other'] == False:
-                    print "\nOther information has changed. Ex addition of CWE."
-                    print "Check for updates here: https://nvd.nist.gov/vuln/detail/%s#VulnChangeHistorySection"%(key)
-                if changelog['nvdrefs'] == True:
-                    print "\nReferences section updated. Old references follow\n"
-                    for url in val['history'][lastitem]['nvdrefs']:
-                        print "%s    "%(url)
             print "---END REPORT---"
 
 class CVECheck:
