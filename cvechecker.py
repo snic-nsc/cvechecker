@@ -693,9 +693,6 @@ class CVECheck:
                 vulndict[cveid]['score'] = 11
 
         for cveid, cveobj in vulndict.iteritems():
-            if not cveobj.__contains__('score'):
-		print 'yelling and screaming about %s not containing the score attrib.'%cveid
-		sys.exit(-1)
             inputs = dict()
             inputs['cveid'] = cveid
             inputs['cveurl'] = None
