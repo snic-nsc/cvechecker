@@ -691,8 +691,6 @@ class CVECheck:
                 vulndict[cveid]['score'] = 11
 
         for cveid, cveobj in vulndict.items():
-            if not cveobj.__contains__('score'):
-                sys.exit(-1)
             inputs = dict()
             inputs['cveid'] = cveid
             inputs['cveurl'] = None
