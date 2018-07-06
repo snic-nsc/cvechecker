@@ -291,7 +291,7 @@ class Result:
                 json.dump(self.resultdict,outfile)
         self.resultdict = newresultdict
 
-    def print_result(self, mutestate='on'):
+    def print_result(self, readconfig, conffile, mutestate='on'):
         cvelist = list()
         proddict = OrderedDict()
         pkglist = list()
@@ -311,6 +311,8 @@ class Result:
                 print('Printing muted entry')
                 print('Record insertion date: %s'%val['insertiondate'])
                 print('Record muted date: %s'%val['muteddate'])
+            if readconfig:
+                print('Config file used: %s'%conffile)
             print("---BEGIN REPORT---")
             print(hdr)
             hdrlen = len(hdr)
@@ -427,6 +429,8 @@ class CVECheck:
         self.resObj = Result()
         self.sources['redhat'] = 'https://www.redhat.com/security/data/metrics/cvemap.xml'
         self.vulnstore = 'vulnstore.json'
+        self.conffile = 'cvechecker.conf'
+        self.readconfig = False
         self.vulnobj = OrderedDict()
         self.cksumfile = 'sha256sums'
         self.dontconnect = dontconnect
@@ -852,9 +856,9 @@ def main():
     argsdict['excludes'] = None
     resobj = Result()
     if noupdate != 'none':
-        cvcobj = CVECheck(True)
+        cveobj = CVECheck(True)
     else:
-        cvcobj = CVECheck()
+        cveobj = CVECheck()
 
     if examples != 'none':
         print('./cvechecker.py: Simply displays the help.')
@@ -904,8 +908,11 @@ def main():
         cve = 'none'
 
     if readconfig != 'none':
+        cveobj.readconfig = True
+        if readconfig != None:
+            cveobj.conffile = readconfig
         try:
-            f = open('cvechecker.conf','r')
+            f = open(cveobj.conffile,'r')
             lines = f.readlines()
             f.close()
             for line in lines:
@@ -951,8 +958,7 @@ def main():
                             if not argsdict['excludes'].__contains__(excl):
                                 argsdict['excludes'].append(excl)
         except:
-            print('cvechecker.conf file not present or contents unreadable')
-            raise
+            print('Config file %s not present or contents unreadable'%cveobj.conffile)
             sys.exit(-1)
       
     if afterdate != 'none':
@@ -978,7 +984,7 @@ def main():
         argsdict['mute'] = mute
 
     if update != 'none':
-        cvcobj.update_store()
+        cveobj.update_store()
         sys.exit(0)
 
     if cve != 'none':
@@ -993,18 +999,18 @@ def main():
         aparser.print_help()
 
     if mute != 'none' or products != 'none' or cve != 'none' or disp_mute != 'none' or keywords != 'none' or afterdate != 'none':
-        retval,cvcobj.resObj.resultdict = cvcobj.read_store(cvcobj.vulnstore,cvcobj.resObj.resultdict)
+        retval,cveobj.resObj.resultdict = cveobj.read_store(cveobj.vulnstore,cveobj.resObj.resultdict)
         if retval == -1:
             print('Trouble initializing from local vuln store. Aborting.')
             sys.exit(-1)
         
-        cvcobj.resObj.trim_result(**argsdict)
+        cveobj.resObj.trim_result(**argsdict)
         if mute != 'none':
             sys.exit(0)
 
         if disp_mute != 'none':
-            cvcobj.resObj.print_result(mutestate='off')
+            cveobj.resObj.print_result(cveobj.readconfig,cveobj.conffile,mutestate='off')
         else:
-            cvcobj.resObj.print_result()
+            cveobj.resObj.print_result(cveobj.readconfig,cveobj.conffile)
 if __name__ == "__main__":
     main()
