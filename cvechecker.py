@@ -236,12 +236,13 @@ class Result:
                                     if excludes != None:
                                         excluded=False
                                         for excl in excludes:
-                                            if prodname == excl:
+                                            if prodname.startswith(excl):
                                                 excluded=True
                                                 break
                                         if excluded == True:
                                             continue
                                     found = True
+                                    val['matchedon']=product
                                     break
                             if found:
                                 break
@@ -319,6 +320,8 @@ class Result:
             for i in range(0,hdrlen):
                 sys.stdout.write('=')
             print("\nhttps://nvd.nist.gov/vuln/detail/"+key+"\n")
+            if not val['matchedon'] == None:
+                print("Matched on: %s"%val['matchedon'])
             print("Status: %s"%val['status'])
             numericscore = self.resultdict[key]['score']
             for scoredef,rng in self.scoredefs.items():
@@ -431,6 +434,7 @@ class CVECheck:
         self.vulnstore = 'vulnstore.json'
         self.conffile = 'cvechecker.conf'
         self.readconfig = False
+        self.matchedon = None
         self.vulnobj = OrderedDict()
         self.cksumfile = 'sha256sums'
         self.dontconnect = dontconnect
