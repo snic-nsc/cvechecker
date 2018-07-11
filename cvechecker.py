@@ -220,6 +220,8 @@ class Result:
                             for desc in val['nvddescriptions']:
                                 if desc.find(keyword) != -1:
                                     found = True
+                                    val['matchedon'] = keyword
+                                    val['matchtype'] = 'keyword'
                                     break
                         if found:
                             break
@@ -242,7 +244,8 @@ class Result:
                                         if excluded == True:
                                             continue
                                     found = True
-                                    val['matchedon']=product
+                                    val['matchedon'] = product
+                                    val['matchtype'] = 'product'
                                     break
                             if found:
                                 break
@@ -320,8 +323,8 @@ class Result:
             for i in range(0,hdrlen):
                 sys.stdout.write('=')
             print("\nhttps://nvd.nist.gov/vuln/detail/"+key+"\n")
-            if not val['matchedon'] == None:
-                print("Matched on: %s"%val['matchedon'])
+            if val.__contains__('matchedon') and val['matchedon'] != None:
+                print("Match-type: %s\nMatched on: %s"%(val['matchtype'],val['matchedon']))
             print("Status: %s"%val['status'])
             numericscore = self.resultdict[key]['score']
             for scoredef,rng in self.scoredefs.items():
@@ -343,6 +346,11 @@ class Result:
                 if changelog['nvdrefs'] == True:
                     print("References section updated. Diff follows\n")
                     diff=difflib.unified_diff(val['history'][lastitem]['nvdrefs'],val['nvdrefs'],lineterm='')
+                    print('\n'.join(diff))
+                    print('\n')
+                if changelog['nvddescriptions'] == True:
+                    print("NVD's description of the vulnerability has been modified. Diff follows\n")
+                    diff=difflib.unified_diff(val['history'][lastitem]['nvddescriptions'],val['nvddescriptions'],lineterm='')
                     print('\n'.join(diff))
                     print('\n')
                 if changelog['other'] == True:
@@ -434,7 +442,6 @@ class CVECheck:
         self.vulnstore = 'vulnstore.json'
         self.conffile = 'cvechecker.conf'
         self.readconfig = False
-        self.matchedon = None
         self.vulnobj = OrderedDict()
         self.cksumfile = 'sha256sums'
         self.dontconnect = dontconnect
