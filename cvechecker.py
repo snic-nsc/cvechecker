@@ -323,7 +323,7 @@ class Result:
             for i in range(0,hdrlen):
                 sys.stdout.write('=')
             print("\nhttps://nvd.nist.gov/vuln/detail/"+key+"\n")
-            if val.__contains__('matchedon') and val['matchedon'] != None:
+            if val.__contains__('matchedon'):
                 print("Match-type: %s\nMatched on: %s"%(val['matchtype'],val['matchedon']))
             print("Status: %s"%val['status'])
             numericscore = self.resultdict[key]['score']
@@ -839,7 +839,7 @@ def main():
     aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one of --product or --cve options') #mark results as seen or unseen
     aparser.add_argument("-n", "--no-update", type=str, nargs='?',default='none',help='do not connect to fetch updated CVE information (useful while debugging).')
     aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product, e.g. http_server
-    aparser.add_argument("-r", "--read-config", type=str, nargs='?',default='none',help='read package and keyword filter values from the configuration file. Additional filters may be provided on the command-line.')
+    aparser.add_argument("-r", "--read-config", type=str, nargs='?',default='none',help='read package and keyword filter values from the configuration file. Additional filters may be provided on the command-line. Optional argument: configuration file to be read; defaults to cvechecker.conf')
     aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical". Needs to be used with --product.') #lookup by severity level
     aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the vulnerability store. Should be run regularly, preferably from a cron.')
     aparser.add_argument("-x", "--exclude", type=str,default='none',help='suppress reporting for these packages; useful to avoid false-positive matches;  ex matching xenmobile for xen filter.') #exclude matches

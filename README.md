@@ -14,10 +14,10 @@
 
 # Python 2.7 support
 
-- Release v1.10-p2 of cvechecker is intended to be the last release for Python 2.7; active development will now only continue for Python 3.
-- Functionality-wise, release v1.11 (for python3) is exactly the same as release v1.10-p2 (for python2); for later tags, check the commit messages.
-- If there are any fixes for bugs present in the v1.10-p2 release, there will be a new tags which will have the -p2 designation, but these will be in the p2 branch.
-- No backports of new features will be made for the p2 branch.
+- Release v1.12-p2 of cvechecker is intended to be the last release for Python 2.7; active development will now only continue for Python 3.
+- Functionality-wise, release v1.12 (for python3) is exactly the same as release v1.12-p2 (for python2); for later tags, check the commit messages.
+- If there are any fixes for bugs present in the v1.12-p2 release, there will be a new tags which will have the -p2 designation, but these will be in the p2 branch.
+- Backporting of new features from the master branch to the p2 branch will probably not occur regularly.
 
 # Configuration and Deployment
 
@@ -68,6 +68,16 @@ Given below is an example on how one can setup regular updates and runs of `cvec
 - The help menu describes the available filters, and even potential combinations of filters, in a fairly detailed manner. I'll simply list the output here:
 
 ````
+usage: cvechecker.py [-h] [-a [AFTER_DATE]] [-c CVE] [-d [DISP_MUTE]]
+                     [-e [EXAMPLES]] [-k KEYWORD] [-m MUTE] [-n [NO_UPDATE]]
+                     [-p PRODUCT] [-r [READ_CONFIG]] [-s SEVERITY]
+                     [-u [UPDATE]] [-x EXCLUDE]
+
+A tool to fetch and update a local vulnerability store against select sources
+of vulnerability information. It can be queried for specific CVEs, by severity
+or product name, or a combination. Entries can be marked as "seen" to allow
+one to "mute" alerts for onal words into the corpus.
+
 optional arguments:
   -h, --help            show this help message and exit
   -a [AFTER_DATE], --after-date [AFTER_DATE]
@@ -97,7 +107,8 @@ optional arguments:
   -r [READ_CONFIG], --read-config [READ_CONFIG]
                         read package and keyword filter values from the
                         configuration file. Additional filters may be provided
-                        on the command-line.
+                        on the command-line. Optional argument: configuration
+                        file to be read; defaults to cvechecker.conf
   -s SEVERITY, --severity SEVERITY
                         filter results by severity level. Valid levels are
                         "None", "Low", "Medium", "High", and "Critical". Needs
@@ -109,9 +120,7 @@ optional arguments:
                         suppress reporting for these packages; useful to avoid
                         false-positive matches; ex matching xenmobile for xen
                         filter.
-- -c/--CVE: 
 ````
-
 ## Scripted/automated execution
 
 - The run script `runcvechecker.sh` gives an example of how `cvechecker` can be used to perform searches for vulnerabilities against products of interest, and handle emailing of alerts to preconfigured recipients.

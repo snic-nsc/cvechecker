@@ -37,7 +37,8 @@ optional arguments:
   -r [READ_CONFIG], --read-config [READ_CONFIG]
                         read package and keyword filter values from the
                         configuration file. Additional filters may be provided
-                        on the command-line.
+                        on the command-line. Optional argument: configuration
+                        file to be read; defaults to cvechecker.conf
   -s SEVERITY, --severity SEVERITY
                         filter results by severity level. Valid levels are
                         "None", "Low", "Medium", "High", and "Critical". Needs
