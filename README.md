@@ -14,9 +14,9 @@
 
 # Python 2.7 support
 
-- Release v1.11-p2 of cvechecker is intended to be the last release for Python 2.7; active development will now only continue for Python 3.
-- Functionality-wise, release v1.11 (for python3) is exactly the same as release v1.12-p2 (for python2); for later tags, check the commit messages.
-- If there are any fixes for bugs present in the v1.11-p2 release, there will be a new tags which will have the -p2 designation, but these will be in the p2 branch.
+- Release v1.12-p2 of cvechecker is intended to be the last release for Python 2.7; active development will now only continue for Python 3.
+- Functionality-wise, release v1.12 (for python3) is exactly the same as release v1.12-p2 (for python2); for later tags, check the commit messages.
+- If there are any fixes for bugs present in the v1.12-p2 release, there will be a new tags which will have the -p2 designation, but these will be in the p2 branch.
 - Backporting of new features from the master branch to the p2 branch will probably not occur regularly.
 
 # Configuration and Deployment

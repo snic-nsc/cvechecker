@@ -325,7 +325,7 @@ class Result:
             for i in range(0,hdrlen):
                 sys.stdout.write('=')
             print("\nhttps://nvd.nist.gov/vuln/detail/"+key+"\n")
-            if val.__contains__('matchedon') and val['matchedon'] != None:
+            if val.__contains__('matchedon'):
                 print("Match-type: %s\nMatched on: %s"%(val['matchtype'],val['matchedon']))
             print("Status: %s"%val['status'])
             numericscore = self.resultdict[key]['score']
@@ -416,9 +416,9 @@ class Result:
             print "Affected Products"
             print "-----------------"
             for vendor,proddict in val['affectedproducts'].iteritems():
-                print '\nVendor: %s'%vendor
+                print('\nVendor: %s'%vendor)
                 for prod,prodlist in proddict.iteritems():
-                    print '\n\tProduct: %s'%prod
+                    print('\n\tProduct: %s'%prod)
                     sys.stdout.write('\tAffected Versions: ')
                     afcount = len(prodlist)
                     afctr = 0
