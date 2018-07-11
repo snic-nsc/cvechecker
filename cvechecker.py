@@ -222,6 +222,8 @@ class Result:
                             for desc in val['nvddescriptions']:
                                 if desc.find(keyword) != -1:
                                     found = True
+                                    val['matchedon'] = keyword
+                                    val['matchtype'] = 'keyword'
                                     break
                         if found:
                             break
@@ -238,12 +240,14 @@ class Result:
                                     if excludes != None:
                                         excluded=False
                                         for excl in excludes:
-                                            if prodname == excl:
+                                            if prodname.startswith(excl):
                                                 excluded=True
                                                 break
                                         if excluded == True:
                                             continue
                                     found = True
+                                    val['matchedon'] = product
+                                    val['matchtype'] = 'product'
                                     break
                             if found:
                                 break
@@ -293,7 +297,7 @@ class Result:
                 json.dump(self.resultdict,outfile)
         self.resultdict = newresultdict
 
-    def print_result(self, mutestate='on'):
+    def print_result(self, readconfig, conffile, mutestate='on'):
         cvelist = list()
         proddict = OrderedDict()
         pkglist = list()
@@ -310,96 +314,101 @@ class Result:
             else:
                 hdr = key
             if mutestate == 'off':
-                print 'Printing muted entry'
-                print 'Record insertion date: %s'%val['insertiondate']
-                print 'Record muted date: %s'%val['muteddate']
-            print "---BEGIN REPORT---"
-            print hdr
+                print('Printing muted entry')
+                print('Record insertion date: %s'%val['insertiondate'])
+                print('Record muted date: %s'%val['muteddate'])
+            if readconfig:
+                print('Config file used: %s'%conffile)
+            print("---BEGIN REPORT---")
+            print(hdr)
             hdrlen = len(hdr)
             for i in range(0,hdrlen):
                 sys.stdout.write('=')
-            print "\nhttps://nvd.nist.gov/vuln/detail/"+key+"\n"
-            print "Status: %s"%val['status']
+            print("\nhttps://nvd.nist.gov/vuln/detail/"+key+"\n")
+            if val.__contains__('matchedon') and val['matchedon'] != None:
+                print("Match-type: %s\nMatched on: %s"%(val['matchtype'],val['matchedon']))
+            print("Status: %s"%val['status'])
             numericscore = self.resultdict[key]['score']
             for scoredef,rng in self.scoredefs.iteritems():
                 if numericscore > rng['high']:
                     continue
                 textscore = scoredef
                 break
-            print "Score %s (%s)"%(numericscore,textscore)
+            print("Score %s (%s)"%(numericscore,textscore))
             if val.__contains__('lastmodifieddate'):
-                print "Last Modification date: %s"%val['lastmodifieddate']
+                print("Last Modification date: %s"%val['lastmodifieddate'])
             if val['status'] == 'Update':
-                print "\nChangelog"
-                print "----------"
-                print ""
+                print("\nChangelog")
+                print("----------")
+                print("")
                 lastitem=len(val['history'])-1
                 changelog=val['history'][lastitem]['changelog']
                 if changelog['score'] == True:
-                    print "Present score: %s. Previous score: %s\n"%(val['score'],val['history'][lastitem]['score'])
+                    print("Present score: %s. Previous score: %s\n"%(val['score'],val['history'][lastitem]['score']))
                 if changelog['nvdrefs'] == True:
-                    print "References section updated. Diff follows\n"
+                    print("References section updated. Diff follows\n")
                     diff=difflib.unified_diff(val['history'][lastitem]['nvdrefs'],val['nvdrefs'],lineterm='')
-                    print '\n'.join(diff)
-                    print '\n'
+                    print('\n'.join(diff))
+                    print('\n')
                 if changelog['nvddescriptions'] == True:
-                    print "NVD's description of the vulnerability has been modified."
+                    print("NVD's description of the vulnerability has been modified. Diff follows\n")
                     diff=difflib.unified_diff(val['history'][lastitem]['nvddescriptions'],val['nvddescriptions'],lineterm='')
-                    print '\n'.join(diff)
-                    print '\n'
+                    print('\n'.join(diff))
+                    print('\n')
                 if changelog['other'] == True:
-                    print "Information other than what is tracked by cvechecker, has been modified, e.g addition of CWE."
-                    print "Check for updates here: https://nvd.nist.gov/vuln/detail/%s#VulnChangeHistorySection"%(key)
-            print ""
-            print "Info from Redhat"
-            print "----------------"
+                    print("Information other than what is tracked by cvechecker, has been modified, e.g addition of CWE.")
+                    print("Check for updates here: https://nvd.nist.gov/vuln/detail/%s#VulnChangeHistorySection"%(key))
+            print("")
+            print("Info from Redhat")
+            print("----------------")
             rhinfoavailable = False
             if self.resultdict[key]['details'] != None:
                 rhinfoavailable = True
-                print self.resultdict[key]['details']
+                print(self.resultdict[key]['details'])
                 if self.resultdict[key]['redhat_info']['score'] != 11:
                     if val['score'] != 11 and val['score'] != self.resultdict[key]['redhat_info']['score']:
-                        print 'Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE, but NVD notes %s. NVD is to be considered a more reliable source'%(self.resultdict[key]['redhat_info']['score'],val['score'])
+                        print('Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE, but NVD notes %s. NVD is to be considered a more reliable source'%(self.resultdict[key]['redhat_info']['score'],val['score']))
                     else:
-                        print 'Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE.'%(self.resultdict[key]['redhat_info']['score'])
+                        print('Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE.'%(self.resultdict[key]['redhat_info']['score']))
 
                 rhinfoavailable = False
                 if self.resultdict[key]['redhat_info'].__contains__('PackageState'):
                     rhinfoavailable = True
 
                 if  rhinfoavailable == True:
-                    print ""
-                    print "Redhat Platform info"
-                    print "--------------------"
+                    print("")
+                    print("Redhat Platform info")
+                    print("--------------------")
                     if len(self.resultdict[key]['redhat_info']['PackageState']) >0:
-                        print ""
-                        print "Package State"
-                        print "-------------"
+                        print("")
+                        print("Package State")
+                        print("-------------")
                         for match in self.resultdict[key]['redhat_info']['PackageState']:
                             for test in ['ProductName','PackageName','FixState']:
                                 if match.__contains__(test):
-                                    print "%s: %s"%(test,match[test])
-                            print "\n"
+                                    print("%s: %s"%(test,match[test]))
+                            print("\n")
                 if self.resultdict[key]['redhat_info'].__contains__('AffectedRelease'):
                     if len(self.resultdict[key]['redhat_info']['AffectedRelease']) >0:
-                        print ""
-                        print "Affected Package Info"
-                        print "---------------------"
+                        print("")
+                        print("Affected Package Info")
+                        print("---------------------")
                         for match in self.resultdict[key]['redhat_info']['AffectedRelease']:
                             for test in ['ProductName','Package','ReleaseDate','advisory_url']:
                                 if match.__contains__(test):
-                                    print "%s: %s"%(test,match[test])
-                            print "\n"
+                                    print("%s: %s"%(test,match[test]))
+                            print("\n")
                 if self.resultdict[key].__contains__('mitigation') and self.resultdict[key]['mitigation'] != None:
                         print("Mitigation")
                         print("----------")
                         print("%s"%(self.resultdict[key]['mitigation']))
+
             else:
-                print "Nil"
-            print ""
-            print "Info from NVD"
-            print "-------------"
-            print ""
+                print("Nil")
+            print("")
+            print("Info from NVD")
+            print("-------------")
+            print("")
             if len(self.resultdict[key]['nvddescriptions']) != 0:
                 for desc in self.resultdict[key]['nvddescriptions']:
                     print desc
@@ -420,12 +429,12 @@ class Result:
                             sys.stdout.write("%s\n"%version)
                         afctr += 1
 
-            print "\nReferences"
-            print "----------"
-            print ""
+            print("\nReferences")
+            print("----------")
+            print("")
             for url in val['nvdrefs']:
-                print "%s    "%(url)
-            print "---END REPORT---"
+                print("%s    "%(url))
+            print("---END REPORT---")
 
 class CVECheck:
     def __init__(self,dontconnect=False):
@@ -433,6 +442,8 @@ class CVECheck:
         self.resObj = Result()
         self.sources['redhat'] = 'https://www.redhat.com/security/data/metrics/cvemap.xml'
         self.vulnstore = 'vulnstore.json'
+        self.conffile = 'cvechecker.conf'
+        self.readconfig = False
         self.vulnobj = OrderedDict()
         self.cksumfile = 'sha256sums'
         self.dontconnect = dontconnect
@@ -459,7 +470,7 @@ class CVECheck:
                 channelinfo[fname]['metaurl'] = metaurl
                 channelinfo[fname]['zip'] = zip
         except:
-            print "Catastrophic error with nvdchannels.conf. Check contents for syntax. Refer to nvdchannels.conf.tmpl for help"
+            print("Catastrophic error with nvdchannels.conf. Check contents for syntax. Refer to nvdchannels.conf.tmpl for help")
             sys.exit(-1)
 
         cksums = dict()
@@ -473,7 +484,7 @@ class CVECheck:
 
                     for line in lines:
                         if line.startswith('sha256'):
-                            cksum = (line.split(':')[1].split('\r')[0]).lower()
+                            cksum = (line.split(':')[1].split('\n')[0]).lower()
                             break
 
                     if cksum == '':
@@ -486,7 +497,7 @@ class CVECheck:
                 if not self.dontconnect:
                     retval,sha256sum = self.compute_checksum(channel)
                     if sha256sum != channelinfo[channel]['sha256sum']:
-                        print "Update available for %s"%channelinfo[channel]
+                        print("Update available for %s"%channelinfo[channel])
                         urlobj.retrieve(channelinfo[channel]['url'],channelinfo[channel]['zip'])
                         f=gzip.GzipFile(channelinfo[channel]['zip'], 'rb')
                         fcontent = f.read()
@@ -503,7 +514,7 @@ class CVECheck:
                     sys.exit(-1)
         except:
             if not self.dontconnect:
-                print "Could not fetch NVD metadata files; check internet connectivity. Your CVE store could not be updated."
+                print("Could not fetch NVD metadata files; check internet connectivity. Your CVE store could not be updated.")
                 self.dontconnect = True
             #no metadata files. read the local nvd files
             try:
@@ -512,7 +523,7 @@ class CVECheck:
                     if retval == -1:
                         raise
             except:
-                print "NVD json files not found. Execute cvechecker.py -u and retry"
+                print("NVD json files not found. Execute cvechecker.py -u and retry")
                 raise
             #this is the unupdated case. Local nvd files are available for reading
             return(False,channelinfo)
@@ -527,10 +538,10 @@ class CVECheck:
             with open('vulnstore.json','r') as inp:
                 pass
         except:
-            print 'No vuln store file found. Initializing from whatever we have.'
+            print('No vuln store file found. Initializing from whatever we have.')
             retval = True
         if retval == False:
-            print 'Nothing has changed from the last invocation.'
+            print('Nothing has changed from the last invocation.')
             return
         
         exceptioncount = 0
@@ -607,7 +618,7 @@ class CVECheck:
         #print idxcount,basescorex,descx,datex
         #print 'datex is %s'%(str(datex))
         #print 'descx is %s'%(str(descx))
-        print len(self.resObj.resultdict)
+        print(len(self.resObj.resultdict))
         self.write_store(self.vulnstore,self.resObj.resultdict)
                 
     def update_from_redhat(self,url):
@@ -622,17 +633,17 @@ class CVECheck:
                 if root.tag != 'cvemap':
                     raise
             except:
-                print 'cannot update CVEs for redhat packages; check internet connectivity.'
+                print('cannot update CVEs for redhat packages; check internet connectivity.')
                 return(False,None)
             retval = self.check_for_changes(fname='cvemap.xml')
             if retval == 0:
-                print "No update available from Redhat"
+                print("No update available from Redhat")
                 return(False,'cvemap.xml')
             if retval == -1:
-                print "Catastrophic failure. FS error?"
+                print("Catastrophic failure. FS error?")
                 sys.exit(-1)
             if retval == 1:
-                print "Redhat CVE xml updated successfully."
+                print("Redhat CVE xml updated successfully.")
                 return(True,'cvemap.xml')
 
     def assign_if_present(self,vulnfieldname,inputfieldname,vulnobj,inputobj,operation=None):
@@ -656,7 +667,7 @@ class CVECheck:
             tree = ET.parse('cvemap.xml')
             root = tree.getroot()
         except:
-            print "Could not parse cvemap.xml.";
+            print("Could not parse cvemap.xml.");
             sys.exit(-1)
     
         vulndict = OrderedDict()
@@ -700,7 +711,7 @@ class CVECheck:
             if not vulndict[cveid].__contains__('score'):
                 vulndict[cveid]['score'] = 11
 
-        for cveid, cveobj in vulndict.iteritems():
+        for cveid, cveobj in vulndict.items():
             inputs = dict()
             inputs['cveid'] = cveid
             inputs['cveurl'] = None
@@ -727,7 +738,7 @@ class CVECheck:
         try:
             self.write_store(self.vulnstore,self.resObj.resultdict)
         except:
-            print 'Fatal error writing output into local vuln store file'
+            print('Fatal error writing output into local vuln store file')
             sys.exit(-1)
         return
     
@@ -771,7 +782,7 @@ class CVECheck:
                 return(-1)
 
             if cksums[fname] != sha256sum:
-                print "checksum list has been updated for file %s."%(fname)
+                print("checksum list has been updated for file %s."%(fname))
                 cksums[fname] = sha256sum
                 changed = True
             if changed == False:
@@ -782,7 +793,7 @@ class CVECheck:
                         outfile.write("%s %s\n"%(cksums[file],file))
                 return(1)
         except:
-            print "Could not look up old checksum for file %s. Will add"%(fname)
+            print("Could not look up old checksum for file %s. Will add"%(fname))
             cksums[fname]= sha256sum
             with open('sha256sums','w') as outfile:
                 for file in cksums:
@@ -830,7 +841,7 @@ def main():
     aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one of --product or --cve options') #mark results as seen or unseen
     aparser.add_argument("-n", "--no-update", type=str, nargs='?',default='none',help='do not connect to fetch updated CVE information (useful while debugging).')
     aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product, e.g. http_server
-    aparser.add_argument("-r", "--read-config", type=str, nargs='?',default='none',help='read package and keyword filter values from the configuration file. Additional filters may be provided on the command-line.')
+    aparser.add_argument("-r", "--read-config", type=str, nargs='?',default='none',help='read package and keyword filter values from the configuration file. Additional filters may be provided on the command-line. Optional argument: configuration file to be read; defaults to cvechecker.conf')
     aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical". Needs to be used with --product.') #lookup by severity level
     aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the vulnerability store. Should be run regularly, preferably from a cron.')
     aparser.add_argument("-x", "--exclude", type=str,default='none',help='suppress reporting for these packages; useful to avoid false-positive matches;  ex matching xenmobile for xen filter.') #exclude matches
@@ -858,28 +869,28 @@ def main():
     argsdict['excludes'] = None
     resobj = Result()
     if noupdate != 'none':
-        cvcobj = CVECheck(True)
+        cveobj = CVECheck(True)
     else:
-        cvcobj = CVECheck()
+        cveobj = CVECheck()
 
     if examples != 'none':
-        print './cvechecker.py: Simply displays the help.'
-        print './cvechecker.py -p http_server,tivoli,slurm,postgres,general_parallel_file_system,irods,torque_resource_manager,struts,java: Display CVEs against these products'
-        print './cvechecker.py -p postgres,http_server --severity=High,Critical,Missing: List vulnerabilities if any, for specified products, and filter on CVE score'
-        print './cvechecker.py -p postgres --severity Medium --mute on: Muting alerts for all matching results'
-        print './cvechecker.py -p chromium --severity Medium --mute off: Unmuting alerts for matching results'
-        print './cvechecker.py -d: Display CVEs that have been muted, and packages that it affects.'
-        print './cvechecker.py -k Intel,InfiniBand,AMD: Display CVEs with descriptions containing these keywords. Case-sensitive, to avoid too many false positives.'
+        print('./cvechecker.py: Simply displays the help.')
+        print('./cvechecker.py -p http_server,tivoli,slurm,postgres,general_parallel_file_system,irods,torque_resource_manager,struts,java: Display CVEs against these products')
+        print('./cvechecker.py -p postgres,http_server --severity=High,Critical,Missing: List vulnerabilities if any, for specified products, and filter on CVE score')
+        print('./cvechecker.py -p postgres --severity Medium --mute on: Muting alerts for all matching results')
+        print('./cvechecker.py -p chromium --severity Medium --mute off: Unmuting alerts for matching results')
+        print('./cvechecker.py -d: Display CVEs that have been muted, and packages that it affects.')
+        print('./cvechecker.py -k Intel,InfiniBand,AMD: Display CVEs with descriptions containing these keywords. Case-sensitive, to avoid too many false positives.')
         sys.exit(0)
 
     if severity != 'none':
         scores = severity.split(',')
         for score in scores:
             if score != 'None' and score != 'Low' and score != 'High' and score != 'Medium' and score != 'Critical' and score != 'Missing':
-                print 'Invalid severity level!'
+                print('Invalid severity level!')
                 sys.exit(-1)
         if products == 'none':
-            print 'This option requires you to specify at least one product with the --product option'
+            print('This option requires you to specify at least one product with the --product option')
             sys.exit(-1)
         cve = 'none'
         argsdict['scores'] = scores
@@ -910,8 +921,11 @@ def main():
         cve = 'none'
 
     if readconfig != 'none':
+        cveobj.readconfig = True
+        if readconfig != None:
+            cveobj.conffile = readconfig
         try:
-            f = open('cvechecker.conf','r')
+            f = open(cveobj.conffile,'r')
             lines = f.readlines()
             f.close()
             for line in lines:
@@ -956,24 +970,24 @@ def main():
                             if not argsdict['excludes'].__contains__(excl):
                                 argsdict['excludes'].append(excl)
         except:
-            print 'cvechecker.conf file not present or contents unreadable'
+            print('Config file %s not present or contents unreadable'%cveobj.conffile)
             sys.exit(-1)
       
     if afterdate != 'none':
         try:
             dtcheck = datetime.datetime.strptime(afterdate,'%Y-%m-%d')
         except:
-            print 'Invalid date or incorrect format. Use the YYYY-MM-DD convention'
+            print('Invalid date or incorrect format. Use the YYYY-MM-DD convention')
             sys.exit(-1)
         cve = 'none'
         argsdict['afterdate']=dtcheck
 
     if mute != 'none':
         if mute != 'on' and mute != 'off':
-            print 'Value for mute flag can only be "off" or "on"'
+            print('Value for mute flag can only be "off" or "on"')
             sys.exit(-1)
         if products == 'none' and cve == 'none' and keywords == 'none':
-            print 'Mute flag requires the use of the --product, --keyword, or the --cve filter. If --cve is specified with other filters, the other filters are.'
+            print('Mute flag requires the use of the --product, --keyword, or the --cve filter. If --cve is specified with other filters, the other filters are.')
             sys.exit(-1)
         if products != 'none' and cve != 'none':
             products = 'none'
@@ -982,7 +996,7 @@ def main():
         argsdict['mute'] = mute
 
     if update != 'none':
-        cvcobj.update_store()
+        cveobj.update_store()
         sys.exit(0)
 
     if cve != 'none':
@@ -997,18 +1011,18 @@ def main():
         aparser.print_help()
 
     if mute != 'none' or products != 'none' or cve != 'none' or disp_mute != 'none' or keywords != 'none' or afterdate != 'none':
-        retval,cvcobj.resObj.resultdict = cvcobj.read_store(cvcobj.vulnstore,cvcobj.resObj.resultdict)
+        retval,cveobj.resObj.resultdict = cveobj.read_store(cveobj.vulnstore,cveobj.resObj.resultdict)
         if retval == -1:
-            print 'Trouble initializing from local vuln store. Aborting.'
+            print('Trouble initializing from local vuln store. Aborting.')
             sys.exit(-1)
         
-        cvcobj.resObj.trim_result(**argsdict)
+        cveobj.resObj.trim_result(**argsdict)
         if mute != 'none':
             sys.exit(0)
 
         if disp_mute != 'none':
-            cvcobj.resObj.print_result(mutestate='off')
+            cveobj.resObj.print_result(cveobj.readconfig,cveobj.conffile,mutestate='off')
         else:
-            cvcobj.resObj.print_result()
+            cveobj.resObj.print_result(cveobj.readconfig,cveobj.conffile)
 if __name__ == "__main__":
     main()
