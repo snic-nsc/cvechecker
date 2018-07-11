@@ -342,6 +342,11 @@ class Result:
                     diff=difflib.unified_diff(val['history'][lastitem]['nvdrefs'],val['nvdrefs'],lineterm='')
                     print '\n'.join(diff)
                     print '\n'
+                if changelog['nvddescriptions'] == True:
+                    print "NVD's description of the vulnerability has been modified."
+                    diff=difflib.unified_diff(val['history'][lastitem]['nvddescriptions'],val['nvddescriptions'],lineterm='')
+                    print '\n'.join(diff)
+                    print '\n'
                 if changelog['other'] == True:
                     print "Information other than what is tracked by cvechecker, has been modified, e.g addition of CWE."
                     print "Check for updates here: https://nvd.nist.gov/vuln/detail/%s#VulnChangeHistorySection"%(key)
