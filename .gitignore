@@ -3,6 +3,7 @@ listedcves
 listedpkgs
 listedscores
 *.json
+*.xml
 *.meta
 *.gz
 *.conf

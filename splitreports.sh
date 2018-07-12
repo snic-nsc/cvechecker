@@ -24,6 +24,7 @@ split_report(){
                 		echo -e "$lastcert"|grep -v 'BEGIN REPORT'|grep -v 'END REPORT' >singlereport
                 		subj=`head -1 singlereport`;
 				status=`grep 'Status:' singlereport|cut -d ' ' -f2`
+                score=`grep Score singlereport|head -1|cut -d '(' -f2|cut -d ')' -f1`
                 if grep -B2 Nil singlereport |grep Redhat >/dev/null; then
                         prods=`grep 'Product:' singlereport |cut -d ' ' -f2|paste -sd,`
                         if [ "$prods" = "" ]; then
