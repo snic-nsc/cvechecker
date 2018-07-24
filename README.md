@@ -14,10 +14,8 @@
 
 # Python 2.7 support
 
-- Release v1.12-p2 of cvechecker is intended to be the last release for Python 2.7; active development will now only continue for Python 3.
-- Functionality-wise, release v1.12 (for python3) is exactly the same as release v1.12-p2 (for python2); for later tags, check the commit messages.
-- If there are any fixes for bugs present in the v1.12-p2 release, there will be a new tags which will have the -p2 designation, but these will be in the p2 branch.
-- Backporting of new features from the master branch to the p2 branch will probably not occur regularly.
+- Release v1.13-p2 (p2 branch) of cvechecker is intended to be the last release for Python 2.7; active development will now only continue for Python 3.
+- Functionality-wise, release v1.13 (for python3) is exactly the same as release v1.13-p2 (for python2); for later tags, check the commit messages.
 
 # Configuration and Deployment
 
@@ -130,7 +128,7 @@ optional arguments:
 ```
 [pchengi@datil ~]$ crontab -l
 PATH=/usr/bin:/usr/local/bin:/usr/local/sbin:/bin
-15 * * * * cd /home/pchengi/cvechecker && python cvechecker.py -u >/dev/null 2>&1
+15 * * * * cd /home/pchengi/cvechecker && python3 cvechecker.py -u >/dev/null 2>&1
 30 * * * * bash /home/pchengi/runcvechecker.sh
 ```
 - The runcvechecker.sh script, and other helper scripts (splitreports.sh, mailsend.py) are available in this repo.
