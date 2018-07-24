@@ -16,12 +16,12 @@ sender=`grep alertmail_sender cvechecker.conf|cut -d '=' -f2`
 port=`grep mailserver_port cvechecker.conf|cut -d '=' -f2`
 server=`grep mailserver_host cvechecker.conf|cut -d '=' -f2`
 
-python cvechecker.py -r >alertout
+python3 cvechecker.py -r >alertout
 if [ -s alertout ]; then
 	bash splitreports.sh alertout "$sender" "$recips" $server $port
 fi
 
 if [ -s alertout ]; then
-	python cvechecker.py -r -m on
+	python3 cvechecker.py -r -m on
 fi
 rm cverun
