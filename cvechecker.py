@@ -583,6 +583,8 @@ class CVECheck:
                 try:
                     for refitem in cveitem['cve']['references']['reference_data']:
                         for junk,url in refitem.items():
+                            if junk == "tags":
+                                continue
                             inputs['nvdrefs'].append(url)
                 except:
                     refexp += 1
