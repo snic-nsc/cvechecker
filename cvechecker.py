@@ -68,7 +68,6 @@ class Result:
                         changelog['nvddescriptions'] = False
                         changelog['nvdrefs'] = False
                         changelog['other'] = False
-
                         if cvescore != 11:
                             if self.resultdict[cveid]['score'] != cvescore:
                                 changelog['score'] = True
@@ -110,9 +109,10 @@ class Result:
                                             changelog['nvdrefs'] = True
                                             histitem['nvdrefs'] = self.resultdict[cveid]['nvdrefs']
                                             break
-
                         if changelog['score'] == False and changelog['nvddescriptions'] == False and changelog['nvdrefs'] == False:
                             changelog['other'] = True
+                        if changelog['score'] == False and changelog['nvddescriptions'] == False and changelog['nvdrefs'] == True:
+                            self.resultdict[cveid]['status'] = 'R-Update'
                         histitem['changelog']=changelog
                         if not self.resultdict[cveid].__contains__('history'):
                             self.resultdict[cveid]['history'] = list()
@@ -335,7 +335,7 @@ class Result:
             print("Score %s (%s)"%(numericscore,textscore))
             if val.__contains__('lastmodifieddate'):
                 print("Last Modification date: %s"%val['lastmodifieddate'])
-            if val['status'] == 'Update':
+            if val['status'] == 'Update' or val['status'] == 'R-Update':
                 print("\nChangelog")
                 print("----------")
                 print("")
@@ -839,7 +839,7 @@ def main():
     aparser.add_argument("-e", "--examples", type=str, nargs='?',default='none',help='display usage examples.')
     aparser.add_argument("-k", "--keyword", type=str, default='none',help='filter results by specified keyword/comma-separated list of keywords in CVE description text from NVD. Can be combined with -p, to get a union set.') #lookup by keyword e.g. Intel
     aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one of --product or --cve options') #mark results as seen or unseen
-    aparser.add_argument("-n", "--no-update", type=str, nargs='?',default='none',help='do not connect to fetch updated CVE information (useful while debugging).')
+    aparser.add_argument("-n", "--no-connection", type=str, nargs='?',default='none',help='do not connect to external servers (NVD, Redhat), to fetch updated CVE information (useful while debugging).')
     aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product, e.g. http_server
     aparser.add_argument("-r", "--read-config", type=str, nargs='?',default='none',help='read package and keyword filter values from the configuration file. Additional filters may be provided on the command-line. Optional argument: configuration file to be read; defaults to cvechecker.conf')
     aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical". Needs to be used with --product.') #lookup by severity level
@@ -848,7 +848,7 @@ def main():
 
     args = aparser.parse_args()
     cve = args.cve
-    noupdate = args.no_update
+    noconnect = args.no_connection
     severity = args.severity
     products = args.product
     mute = args.mute
@@ -868,7 +868,7 @@ def main():
     argsdict['keywords'] = None
     argsdict['excludes'] = None
     resobj = Result()
-    if noupdate != 'none':
+    if noconnect != 'none':
         cveobj = CVECheck(True)
     else:
         cveobj = CVECheck()
