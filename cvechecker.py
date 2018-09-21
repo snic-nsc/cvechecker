@@ -843,7 +843,7 @@ def main():
     aparser.add_argument("-n", "--no-connection", type=str, nargs='?',default='none',help='do not connect to external servers (NVD, Redhat), to fetch updated CVE information (useful while debugging).')
     aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product, e.g. http_server
     aparser.add_argument("-r", "--read-config", type=str, nargs='?',default='none',help='read package and keyword filter values from the configuration file. Additional filters may be provided on the command-line. Optional argument: configuration file to be read; defaults to cvechecker.conf')
-    aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical". Needs to be used with --product.') #lookup by severity level
+    aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical". Needs to be used with --product, or --after-date.') #lookup by severity level
     aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the vulnerability store. Should be run regularly, preferably from a cron.')
     aparser.add_argument("-x", "--exclude", type=str,default='none',help='suppress reporting for these packages; useful to avoid false-positive matches;  ex matching xenmobile for xen filter.') #exclude matches
 
@@ -882,7 +882,18 @@ def main():
         print('./cvechecker.py -p chromium --severity Medium --mute off: Unmuting alerts for matching results')
         print('./cvechecker.py -d: Display CVEs that have been muted, and packages that it affects.')
         print('./cvechecker.py -k Intel,InfiniBand,AMD: Display CVEs with descriptions containing these keywords. Case-sensitive, to avoid too many false positives.')
-        sys.exit(0)
+        sys.exit(0
+)
+    if afterdate != 'none':
+        try:
+            dtcheck = datetime.datetime.strptime(afterdate,'%Y-%m-%d')
+        except:
+            print('Invalid date or incorrect format. Use the YYYY-MM-DD convention')
+            sys.exit(-1)
+        if cve != 'none':
+            print('Cannot specify -c and -a flags simultaneously')
+            sys.exit(-1)
+        argsdict['afterdate']=dtcheck
 
     if severity != 'none':
         scores = severity.split(',')
@@ -890,8 +901,8 @@ def main():
             if score != 'None' and score != 'Low' and score != 'High' and score != 'Medium' and score != 'Critical' and score != 'Missing':
                 print('Invalid severity level!')
                 sys.exit(-1)
-        if products == 'none':
-            print('This option requires you to specify at least one product with the --product option')
+        if products == 'none' and afterdate == 'none' and keywords == 'none':
+            print('This option requires you to specify at least one product/keyword, or specify the --after-date option')
             sys.exit(-1)
         cve = 'none'
         argsdict['scores'] = scores
@@ -903,6 +914,9 @@ def main():
         for prod in prods:
             if not argsdict['products'].__contains__(prod):
                 argsdict['products'].append(prod)
+        if cve != 'none':
+            print('Cannot specify -c and -p flags simultaneously')
+            sys.exit(-1)
         cve = 'none'
 
     if keywords != 'none':
@@ -911,6 +925,9 @@ def main():
         for kwd in kwds:
             if not argsdict['keywords'].__contains__(kwd):
                 argsdict['keywords'].append(kwd)
+        if cve != 'none':
+            print('Cannot specify -c and -k flags simultaneously')
+            sys.exit(-1)
         cve = 'none'
 
     if exclude != 'none':
@@ -920,6 +937,9 @@ def main():
             if not argsdict['excludes'].__contains__(excl):
                 argsdict['excludes'].append(excl)
         cve = 'none'
+        if cve != 'none':
+            print('Cannot specify -c and -x flags simultaneously')
+            sys.exit(-1)
 
     if readconfig != 'none':
         cveobj.readconfig = True
@@ -975,15 +995,6 @@ def main():
             print('Config file %s not present or contents unreadable'%cveobj.conffile)
             sys.exit(-1)
       
-    if afterdate != 'none':
-        try:
-            dtcheck = datetime.datetime.strptime(afterdate,'%Y-%m-%d')
-        except:
-            print('Invalid date or incorrect format. Use the YYYY-MM-DD convention')
-            sys.exit(-1)
-        cve = 'none'
-        argsdict['afterdate']=dtcheck
-
     if mute != 'none':
         if mute != 'on' and mute != 'off':
             print('Value for mute flag can only be "off" or "on"')
