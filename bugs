@@ -1,3 +1,3 @@
-#Bug Number|Description|Noted in version|Status|Commit id of fix
-1|If CVE lookup (-c) yields no result, it results in a KeyError|v1.14|Fixed|99f900af488a2b6c7e3f5c3cc4288d702d147981
-2|--exclude option not when using keyword matching.|v1.14|Fixed|
+#Bug Number|Description|Noted in version|Status|Fixed in version
+1|If CVE lookup (-c) yields no result, it results in a KeyError|v1.14|Fixed|v1.15
+2|--exclude option not when using keyword matching.|v1.14|Fixed|v1.15
