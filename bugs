@@ -1,0 +1,2 @@
+#Bug Number|Description|Noted in version|Status|Commit id of fix
+1|If CVE lookup (-c) yields no result, it results in a KeyError|v1.14|Fixed|

@@ -200,7 +200,8 @@ class Result:
         newresultdict = dict()
         if cves != None:
             for cve in cves:
-                newresultdict[cve]= self.resultdict[cve]
+                if self.resultdict.__contains__(cve):
+                    newresultdict[cve]= self.resultdict[cve]
         else:
             for key, val in self.resultdict.items():
                 if scores != None:
