@@ -220,6 +220,20 @@ class Result:
                         if len(val['nvddescriptions']) > 0:
                             for desc in val['nvddescriptions']:
                                 if desc.find(keyword) != -1:
+                                    if excludes != None:
+                                        excluded=False
+                                        for excl in excludes:
+                                            for vendor,proddict in val['affectedproducts'].items():
+                                                for prodname in proddict:
+                                                    if prodname == excl:
+                                                        excluded=True
+                                                        break
+                                                if excluded == True:
+                                                    break
+                                            if excluded == True:
+                                                break
+                                        if excluded == True:
+                                            continue
                                     found = True
                                     val['matchedon'] = keyword
                                     val['matchtype'] = 'keyword'
@@ -239,7 +253,7 @@ class Result:
                                     if excludes != None:
                                         excluded=False
                                         for excl in excludes:
-                                            if prodname.startswith(excl):
+                                            if prodname == excl:
                                                 excluded=True
                                                 break
                                         if excluded == True:
