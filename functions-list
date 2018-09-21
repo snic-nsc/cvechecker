@@ -1,12 +1,12 @@
 usage: cvechecker.py [-h] [-a [AFTER_DATE]] [-c CVE] [-d [DISP_MUTE]]
-                     [-e [EXAMPLES]] [-k KEYWORD] [-m MUTE] [-n [NO_UPDATE]]
-                     [-p PRODUCT] [-r [READ_CONFIG]] [-s SEVERITY]
-                     [-u [UPDATE]] [-x EXCLUDE]
+                     [-e [EXAMPLES]] [-k KEYWORD] [-m MUTE]
+                     [-n [NO_CONNECTION]] [-p PRODUCT] [-r [READ_CONFIG]]
+                     [-s SEVERITY] [-u [UPDATE]] [-x EXCLUDE]
 
 A tool to fetch and update a local vulnerability store against select sources
 of vulnerability information. It can be queried for specific CVEs, by severity
 or product name, or a combination. Entries can be marked as "seen" to allow
-one to "mute" alerts for onal words into the corpus.
+one to "mute" alerts.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -28,9 +28,10 @@ optional arguments:
   -m MUTE, --mute MUTE  set mute on or off, to silence/unsilence reporting.
                         Must be used in combination with one of --product or
                         --cve options
-  -n [NO_UPDATE], --no-update [NO_UPDATE]
-                        do not connect to fetch updated CVE information
-                        (useful while debugging).
+  -n [NO_CONNECTION], --no-connection [NO_CONNECTION]
+                        do not connect to external servers (NVD, Redhat), to
+                        fetch updated CVE information (useful while
+                        debugging).
   -p PRODUCT, --product PRODUCT
                         filter results by specified product name or comma-
                         separated list of products.
@@ -42,7 +43,7 @@ optional arguments:
   -s SEVERITY, --severity SEVERITY
                         filter results by severity level. Valid levels are
                         "None", "Low", "Medium", "High", and "Critical". Needs
-                        to be used with --product.
+                        to be used with --product, or --after-date.
   -u [UPDATE], --update [UPDATE]
                         update the vulnerability store. Should be run
                         regularly, preferably from a cron.
