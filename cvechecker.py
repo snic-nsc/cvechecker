@@ -522,8 +522,11 @@ class CVECheck:
                 retval = self.check_for_changes(fname=channel)
                 if retval != 0:
                     changed = True
+                    print("Updated file %s successfully."%channel)
                 if retval == -1:
                     sys.exit(-1)
+            if changed == False:
+                print("No update available from NVD.")
         except:
             if not self.dontconnect:
                 print("Could not fetch NVD metadata files; check internet connectivity. Your CVE store could not be updated.")
@@ -650,7 +653,7 @@ class CVECheck:
                 return(False,None)
             retval = self.check_for_changes(fname='cvemap.xml')
             if retval == 0:
-                print("No update available from Redhat")
+                print("No update available from Redhat.")
                 return(False,'cvemap.xml')
             if retval == -1:
                 print("Catastrophic failure. FS error?")
