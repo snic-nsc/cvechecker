@@ -462,7 +462,6 @@ class CVECheck:
         self.dontconnect = dontconnect
 
     def update_from_nvd(self):
-        urlobj = urllib.request.URLopener()
         channelinfo = OrderedDict()
         try:
             with open('nvdchannels.conf','r') as inp:
@@ -490,7 +489,7 @@ class CVECheck:
         try:
             if not self.dontconnect:
                 for channel in channelinfo:
-                    urlobj.retrieve(channelinfo[channel]['metaurl'],channelinfo[channel]['metafname'])
+                    urllib.request.urlretrieve(channelinfo[channel]['metaurl'],channelinfo[channel]['metafname'])
                     with open(channelinfo[channel]['metafname'],'r') as inp:
                         lines = inp.readlines()
                     cksum = ''
@@ -511,7 +510,7 @@ class CVECheck:
                     retval,sha256sum = self.compute_checksum(channel)
                     if sha256sum != channelinfo[channel]['sha256sum']:
                         print("Update available for %s"%channelinfo[channel])
-                        urlobj.retrieve(channelinfo[channel]['url'],channelinfo[channel]['zip'])
+                        urllib.request.urlretrieve(channelinfo[channel]['url'],channelinfo[channel]['zip'])
                         f=gzip.GzipFile(channelinfo[channel]['zip'], 'rb')
                         fcontent = f.read()
                         f.close()
@@ -641,8 +640,7 @@ class CVECheck:
             if self.dontconnect:
                 return(False,'cvemap.xml')
             try:
-                urlobj = urllib.request.URLopener()
-                urlobj.retrieve(url,'cvemap.xml')
+                urllib.request.urlretrieve(url,'cvemap.xml')
                 tree = ET.parse('cvemap.xml')
                 root = tree.getroot()
                 if root.tag != 'cvemap':
@@ -780,8 +778,7 @@ class CVECheck:
     def check_for_changes(self,url=None,fname=None):
         if url != None:
             try:
-                urlobj = urllib.request.URLopener()
-                urlobj.retrieve(url,fname)
+                urllib.request.urlretrieve(url,fname)
             except:
                 return(-1)
 
