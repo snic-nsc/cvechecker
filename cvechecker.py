@@ -348,6 +348,8 @@ class Result:
                 textscore = scoredef
                 break
             print("Score %s (%s)"%(numericscore,textscore))
+            if val.__contains__('insertiondate'):
+                print("First seen date: %s"%val['insertiondate'])
             if val.__contains__('lastmodifieddate'):
                 print("Last Modification date: %s"%val['lastmodifieddate'])
             if val['status'] == 'Update' or val['status'] == 'R-Update':
