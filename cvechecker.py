@@ -220,8 +220,8 @@ class Result:
                         if len(val['nvddescriptions']) > 0:
                             for desc in val['nvddescriptions']:
                                 if desc.find(keyword) != -1:
+                                    excluded=False
                                     if excludes != None:
-                                        excluded=False
                                         for excl in excludes:
                                             for vendor,proddict in val['affectedproducts'].items():
                                                 for prodname in proddict:
@@ -250,8 +250,8 @@ class Result:
                         for vendor,proddict in val['affectedproducts'].items():
                             for prodname, versionlist in proddict.items():
                                 if prodname.startswith(product):
+                                    excluded=False
                                     if excludes != None:
-                                        excluded=False
                                         for excl in excludes:
                                             if prodname == excl:
                                                 excluded=True
@@ -266,9 +266,30 @@ class Result:
                                 break
                         if found:
                             break
+                        #plugin point for rh-product check
+                        if val['details'] != None:
+                            if val['redhat_info'].__contains__('PackageState'):
+                                if len(val['redhat_info']['PackageState']) >0:
+                                    for match in val['redhat_info']['PackageState']:
+                                        if match.__contains__('PackageName'):
+                                            if match['PackageName'].startswith(product):
+                                                #print("%s starts with %s"%(match['PackageName'],product))
+                                                excluded = False
+                                                if excludes != None:
+                                                    for excl in excludes:
+                                                        if match['PackageName'] == excl:
+                                                            excluded = True
+                                                            break
+                                                if excluded == True:
+                                                    break
+                                                found = True
+                                                val['matchedon'] = match['PackageName']
+                                                val['matchtype'] = 'product'
+                                                break
+                            if found:
+                                break
                     if not found:
                         continue
-
                 if afterdate != None:
                     #first check for last-modified date. If absent, look for redhat affectedrelease; if that too isn't available, drop result.
                     if val.__contains__('lastmodifieddate'):
