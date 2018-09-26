@@ -222,18 +222,15 @@ class Result:
                                 if desc.find(keyword) != -1:
                                     excluded=False
                                     if excludes != None:
-                                        for excl in excludes:
                                             for vendor,proddict in val['affectedproducts'].items():
                                                 for prodname in proddict:
-                                                    if prodname == excl:
+                                                    if excludes.__contains__(prodname):
                                                         excluded=True
                                                         break
                                                 if excluded == True:
                                                     break
                                             if excluded == True:
                                                 break
-                                        if excluded == True:
-                                            continue
                                     found = True
                                     val['matchedon'] = keyword
                                     val['matchtype'] = 'keyword'
@@ -252,18 +249,19 @@ class Result:
                                 if prodname.startswith(product):
                                     excluded=False
                                     if excludes != None:
-                                        for excl in excludes:
-                                            if prodname == excl:
-                                                excluded=True
-                                                break
-                                        if excluded == True:
-                                            continue
+                                        if excludes.__contains__(prodname):
+                                            excluded=True
+                                            break
                                     found = True
                                     val['matchedon'] = product
                                     val['matchtype'] = 'product'
                                     break
+                            if excluded == True:
+                                continue
                             if found:
                                 break
+                        if excluded == True:
+                            continue
                         if found:
                             break
                         #plugin point for rh-product check
