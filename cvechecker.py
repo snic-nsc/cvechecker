@@ -203,6 +203,7 @@ class Result:
                 if self.resultdict.__contains__(cve):
                     newresultdict[cve]= self.resultdict[cve]
         else:
+            excluded = False
             for key, val in self.resultdict.items():
                 if scores != None:
                     numfails = 0
@@ -220,12 +221,12 @@ class Result:
                         if len(val['nvddescriptions']) > 0:
                             for desc in val['nvddescriptions']:
                                 if desc.find(keyword) != -1:
-                                    excluded=False
+                                    excluded = False
                                     if excludes != None:
                                             for vendor,proddict in val['affectedproducts'].items():
                                                 for prodname in proddict:
                                                     if excludes.__contains__(prodname):
-                                                        excluded=True
+                                                        excluded = True
                                                         break
                                                 if excluded == True:
                                                     break
@@ -235,6 +236,8 @@ class Result:
                                     val['matchedon'] = keyword
                                     val['matchtype'] = 'keyword'
                                     break
+                        if excluded == True:
+                            break
                         if found:
                             break
                     if not found:
@@ -243,6 +246,7 @@ class Result:
                             continue
 
                 if products != None and found == False:
+                    excluded=False
                     for product in products:
                         for vendor,proddict in val['affectedproducts'].items():
                             for prodname, versionlist in proddict.items():
@@ -257,11 +261,11 @@ class Result:
                                     val['matchtype'] = 'product'
                                     break
                             if excluded == True:
-                                continue
+                                break
                             if found:
                                 break
                         if excluded == True:
-                            continue
+                            break
                         if found:
                             break
                         #plugin point for rh-product check
@@ -274,18 +278,17 @@ class Result:
                                                 #print("%s starts with %s"%(match['PackageName'],product))
                                                 excluded = False
                                                 if excludes != None:
-                                                    for excl in excludes:
-                                                        if match['PackageName'] == excl:
-                                                            excluded = True
-                                                            break
-                                                if excluded == True:
-                                                    break
+                                                    if excludes.__contains__(match['PackageName']):
+                                                        excluded = True
+                                                        break
                                                 found = True
-                                                val['matchedon'] = match['PackageName']
+                                                val['matchedon'] = product
                                                 val['matchtype'] = 'product'
                                                 break
-                            if found:
-                                break
+                        if excluded == True:
+                            continue
+                        if found:
+                            break
                     if not found:
                         continue
                 if afterdate != None:
