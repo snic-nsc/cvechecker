@@ -203,7 +203,6 @@ class Result:
                 if self.resultdict.__contains__(cve):
                     newresultdict[cve]= self.resultdict[cve]
         else:
-            excluded = False
             for key, val in self.resultdict.items():
                 if scores != None:
                     numfails = 0
@@ -214,83 +213,27 @@ class Result:
                     if numfails == len(scores):
                         #this entry fails all specified score requirements
                         continue
-                found = False
-                if keywords != None:
-                    for keyword in keywords:
-                        keyword += ' '
-                        if len(val['nvddescriptions']) > 0:
-                            for desc in val['nvddescriptions']:
-                                if desc.find(keyword) != -1:
-                                    excluded = False
-                                    if excludes != None:
-                                            for vendor,proddict in val['affectedproducts'].items():
-                                                for prodname in proddict:
-                                                    if excludes.__contains__(prodname):
-                                                        excluded = True
-                                                        break
-                                                if excluded == True:
-                                                    break
-                                            if excluded == True:
-                                                break
-                                    found = True
-                                    val['matchedon'] = keyword
-                                    val['matchtype'] = 'keyword'
-                                    break
-                        if excluded == True:
-                            break
-                        if found:
-                            break
-                    if not found:
-                        # if a product-based search is also requested, we need to check for a product match before eliminating the result
-                        if products == None:
-                            continue
 
-                if products != None and found == False:
-                    excluded=False
-                    for product in products:
-                        for vendor,proddict in val['affectedproducts'].items():
-                            for prodname, versionlist in proddict.items():
-                                if prodname.startswith(product):
-                                    excluded=False
-                                    if excludes != None:
-                                        if excludes.__contains__(prodname):
-                                            excluded=True
+                excluded = False
+                if excludes != None:
+                    for vendor,proddict in val['affectedproducts'].items():
+                        for prodname in proddict:
+                            if excludes.__contains__(prodname):
+                                excluded = True
+                                break
+                        if excluded == True:
+                            break
+                    if not excluded:
+                        if val['redhat_info'].__contains__('PackageState'):
+                            if len(val['redhat_info']['PackageState']) >0:
+                                for match in val['redhat_info']['PackageState']:
+                                    if match.__contains__('PackageName'):
+                                        if excludes.__contains__(match['PackageName']):
+                                            excluded = True
                                             break
-                                    found = True
-                                    val['matchedon'] = product
-                                    val['matchtype'] = 'product'
-                                    break
-                            if excluded == True:
-                                break
-                            if found:
-                                break
-                        if excluded == True:
-                            break
-                        if found:
-                            break
-                        #plugin point for rh-product check
-                        if val['details'] != None:
-                            if val['redhat_info'].__contains__('PackageState'):
-                                if len(val['redhat_info']['PackageState']) >0:
-                                    for match in val['redhat_info']['PackageState']:
-                                        if match.__contains__('PackageName'):
-                                            if match['PackageName'].startswith(product):
-                                                #print("%s starts with %s"%(match['PackageName'],product))
-                                                excluded = False
-                                                if excludes != None:
-                                                    if excludes.__contains__(match['PackageName']):
-                                                        excluded = True
-                                                        break
-                                                found = True
-                                                val['matchedon'] = product
-                                                val['matchtype'] = 'product'
-                                                break
-                        if excluded == True:
-                            continue
-                        if found:
-                            break
-                    if not found:
-                        continue
+                if excluded == True:
+                    continue
+
                 if afterdate != None:
                     #first check for last-modified date. If absent, look for redhat affectedrelease; if that too isn't available, drop result.
                     if val.__contains__('lastmodifieddate'):
@@ -309,8 +252,54 @@ class Result:
                         else:
                             #unable to determine if it's reasonably recent, so dropping, as we've been requested only to provide what is confirmed to be after a certain date
                             continue
-                newresultdict[key] = val
 
+                found = False
+                if keywords != None:
+                    for keyword in keywords:
+                        keyword += ' '
+                        if len(val['nvddescriptions']) > 0:
+                            for desc in val['nvddescriptions']:
+                                if desc.find(keyword) != -1:
+                                    found = True
+                                    val['matchedon'] = keyword
+                                    val['matchtype'] = 'keyword'
+                                    break
+                        if found:
+                            break
+                    if not found:
+                        # if a product-based search is also requested, we need to check for a product match before eliminating the result
+                        if products == None:
+                            continue
+
+                if products != None and found == False:
+                    for product in products:
+                        for vendor,proddict in val['affectedproducts'].items():
+                            for prodname, versionlist in proddict.items():
+                                if prodname.startswith(product):
+                                    found = True
+                                    val['matchedon'] = product
+                                    val['matchtype'] = 'product'
+                                    break
+                            if found:
+                                break
+                        if found:
+                            break
+                        #plugin point for rh-product check
+                        if val['details'] != None:
+                            if val['redhat_info'].__contains__('PackageState'):
+                                if len(val['redhat_info']['PackageState']) >0:
+                                    for match in val['redhat_info']['PackageState']:
+                                        if match.__contains__('PackageName'):
+                                            if match['PackageName'].startswith(product):
+                                                found = True
+                                                val['matchedon'] = product
+                                                val['matchtype'] = 'product'
+                                                break
+                        if found:
+                            break
+                    if not found:
+                        continue
+                newresultdict[key] = val
         #outside the loop
         
         if mute != 'none':
