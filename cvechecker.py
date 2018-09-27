@@ -196,7 +196,7 @@ class Result:
                 self.resultdict[cveid]['lastmodifieddate'] = lastmodifieddate
             return
 
-    def trim_result(self, products=None, keywords=None, scores=None, cves=None, afterdate=None, excludes=None, mute='none'):
+    def trim_result(self, products=None, keywords=None, scores=None, cves=None, afterdate=None, excludes=None, mute='none', log_mute=None):
         newresultdict = dict()
         if cves != None:
             for cve in cves:
@@ -313,6 +313,8 @@ class Result:
                     newresultdict[entry]['status'] = 'Seen'
                     self.resultdict[entry]['muteddate'] = dtstr
                     self.resultdict[entry]['status'] = 'Seen'
+                    with open('muting_log','a') as inp:
+                        inp.write("%s|%s|%s|%s\n"%(entry,log_mute['product'],dtstr,log_mute['muting_reason']))
                 else:
                     newresultdict[entry]['muteddate'] = ''
                     self.resultdict[entry]['muteddate'] = ''
@@ -866,6 +868,7 @@ def main():
     aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. --cve or --product filters may be used in conjuction with -d.')
     aparser.add_argument("-e", "--examples", type=str, nargs='?',default='none',help='display usage examples.')
     aparser.add_argument("-k", "--keyword", type=str, default='none',help='filter results by specified keyword/comma-separated list of keywords in CVE description text from NVD. Can be combined with -p, to get a union set.') #lookup by keyword e.g. Intel
+    aparser.add_argument("-l", "--log-mute", type=str, nargs='?',default='none',help='log a message upon muting.')
     aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one of --product or --cve options') #mark results as seen or unseen
     aparser.add_argument("-n", "--no-connection", type=str, nargs='?',default='none',help='do not connect to external servers (NVD, Redhat), to fetch updated CVE information (useful while debugging).')
     aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product, e.g. http_server
@@ -877,6 +880,7 @@ def main():
     args = aparser.parse_args()
     cve = args.cve
     noconnect = args.no_connection
+    log_mute = args.log_mute
     severity = args.severity
     products = args.product
     mute = args.mute
@@ -1027,13 +1031,19 @@ def main():
             print('Value for mute flag can only be "off" or "on"')
             sys.exit(-1)
         if products == 'none' and cve == 'none' and keywords == 'none':
-            print('Mute flag requires the use of the --product, --keyword, or the --cve filter. If --cve is specified with other filters, the other filters are.')
+            print('Mute flag requires the use of the --product, --keyword, or the --cve filter. If --cve is specified with other filters, the other filters are ignored.')
             sys.exit(-1)
         if products != 'none' and cve != 'none':
             products = 'none'
         if keywords != 'none' and cve != 'none':
             keywords = 'none'
         argsdict['mute'] = mute
+        if log_mute != 'none' and mute == 'on':
+            argsdict['log_mute'] = dict()
+            argsdict['log_mute']['product'] = input("Product name?\n")
+            argsdict['log_mute']['muting_reason'] = input("Reason for muting?\n")
+        else:
+            argsdict['log_mute'] = None
 
     if update != 'none':
         cveobj.update_store()
