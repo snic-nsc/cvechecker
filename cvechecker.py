@@ -1039,11 +1039,11 @@ def main():
             keywords = 'none'
         argsdict['mute'] = mute
         if log_mute != 'none' and mute == 'on':
+            argsdict['log_mute'] = dict()
             if log_mute != None:
                 argsdict['log_mute']['logfile']=log_mute
             else:
                 argsdict['log_mute']['logfile']='muting_log'
-            argsdict['log_mute'] = dict()
             argsdict['log_mute']['product'] = input("Product name?\n")
             argsdict['log_mute']['muting_reason'] = input("Reason for muting?\n")
         else:
