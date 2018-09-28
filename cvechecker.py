@@ -313,7 +313,7 @@ class Result:
                     newresultdict[entry]['status'] = 'Seen'
                     self.resultdict[entry]['muteddate'] = dtstr
                     self.resultdict[entry]['status'] = 'Seen'
-                    with open('muting_log','a') as inp:
+                    with open(log_mute['logfile'],'a') as inp:
                         inp.write("%s|%s|%s|%s\n"%(entry,log_mute['product'],dtstr,log_mute['muting_reason']))
                 else:
                     newresultdict[entry]['muteddate'] = ''
@@ -1039,6 +1039,10 @@ def main():
             keywords = 'none'
         argsdict['mute'] = mute
         if log_mute != 'none' and mute == 'on':
+            if log_mute != None:
+                argsdict['log_mute']['logfile']=log_mute
+            else:
+                argsdict['log_mute']['logfile']='muting_log'
             argsdict['log_mute'] = dict()
             argsdict['log_mute']['product'] = input("Product name?\n")
             argsdict['log_mute']['muting_reason'] = input("Reason for muting?\n")
