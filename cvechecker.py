@@ -323,11 +323,15 @@ class Result:
                         newresultdict[entry]['muting_product'] = log_mute['product']
                         self.resultdict[entry]['muting_reason'] = log_mute['muting_reason']
                         self.resultdict[entry]['muting_product'] = log_mute['product']
-                        with open('muting_log','a') as inp:
+                        with open(log_mute['logfile'],'a') as inp:
                             inp.write("%s|%s|%s|%s\n"%(entry,log_mute['product'],dtstr,log_mute['muting_reason']))
                 else:
                     newresultdict[entry]['muteddate'] = ''
                     self.resultdict[entry]['muteddate'] = ''
+                    newresultdict[entry]['muting_product'] = ''
+                    self.resultdict[entry]['muting_product'] = ''
+                    newresultdict[entry]['muting_reason'] = ''
+                    self.resultdict[entry]['muting_reason'] = ''
                     
             with codecs.open('vulnstore.json','w','utf-8') as outfile:
                 json.dump(self.resultdict,outfile)
@@ -1085,6 +1089,10 @@ def main():
         argsdict['mute'] = mute
         if log_mute != 'none' and mute == 'on':
             argsdict['log_mute'] = dict()
+            if log_mute != None:
+                argsdict['log_mute']['logfile']=log_mute
+            else:
+                argsdict['log_mute']['logfile']='muting_log'
             argsdict['log_mute']['product'] = input("Product name?\n")
             argsdict['log_mute']['muting_reason'] = input("Reason for muting?\n")
         else:
