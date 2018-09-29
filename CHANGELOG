@@ -1,0 +1,11 @@
+# Change list
+
+## v1.17.1
+
+- Adopted semantic versioning.
+- Added functionality to export and import muted entries; this eliminates the need to share the entire vulnerability store.
+- A muted entry export can be made as part of a systematic backup.
+- If upgrading from older versions (database not freshly initialized), first execute this:
+````
+python3 addmutingreason.py
+````

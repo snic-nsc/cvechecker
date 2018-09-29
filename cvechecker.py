@@ -313,8 +313,18 @@ class Result:
                     newresultdict[entry]['status'] = 'Seen'
                     self.resultdict[entry]['muteddate'] = dtstr
                     self.resultdict[entry]['status'] = 'Seen'
-                    with open('muting_log','a') as inp:
-                        inp.write("%s|%s|%s|%s\n"%(entry,log_mute['product'],dtstr,log_mute['muting_reason']))
+                    if log_mute == None:
+                        newresultdict[entry]['muting_reason'] = 'Batch-mute'
+                        newresultdict[entry]['muting_product'] = 'Misc'
+                        self.resultdict[entry]['muting_reason'] = 'Batch-mute'
+                        self.resultdict[entry]['muting_product'] = 'Misc'
+                    else:
+                        newresultdict[entry]['muting_reason'] = log_mute['muting_reason']
+                        newresultdict[entry]['muting_product'] = log_mute['product']
+                        self.resultdict[entry]['muting_reason'] = log_mute['muting_reason']
+                        self.resultdict[entry]['muting_product'] = log_mute['product']
+                        with open('muting_log','a') as inp:
+                            inp.write("%s|%s|%s|%s\n"%(entry,log_mute['product'],dtstr,log_mute['muting_reason']))
                 else:
                     newresultdict[entry]['muteddate'] = ''
                     self.resultdict[entry]['muteddate'] = ''
@@ -866,9 +876,11 @@ def main():
     aparser.add_argument("-a", "--after-date", type=str, nargs='?',default='none',help='only list matches whose last modified date is after the given date. Date format YYYY-MM-DD.')
     aparser.add_argument("-c", "--cve", type=str, default='none',help='output information about specified CVE or comma-separated list of CVEs. Cannot be combined with any other filter/option.')
     aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. --cve or --product filters may be used in conjuction with -d.')
-    aparser.add_argument("-e", "--examples", type=str, nargs='?',default='none',help='display usage examples.')
+    aparser.add_argument("--examples", type=str, nargs='?',default='none',help='display usage examples.')
+    aparser.add_argument("-e", "--export-mutes", type=str, default='none',help='export muted entries to file. Requires name of file to write output to.')
+    aparser.add_argument("-i", "--import-mutes", type=str, default='none',help='import muted entries from properly formatted import file (use --export-mutes to create a compliant file). Requires name of file to import the muted entry list from.')
     aparser.add_argument("-k", "--keyword", type=str, default='none',help='filter results by specified keyword/comma-separated list of keywords in CVE description text from NVD. Can be combined with -p, to get a union set.') #lookup by keyword e.g. Intel
-    aparser.add_argument("-l", "--log-mute", type=str, nargs='?',default='none',help='log a message upon muting.')
+    aparser.add_argument("-l", "--log-mute", type=str, nargs='?',default='none',help='log a custom message upon muting. Can specify log file as an optional argument.')
     aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one of --product or --cve options') #mark results as seen or unseen
     aparser.add_argument("-n", "--no-connection", type=str, nargs='?',default='none',help='do not connect to external servers (NVD, Redhat), to fetch updated CVE information (useful while debugging).')
     aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product, e.g. http_server
@@ -887,6 +899,8 @@ def main():
     disp_mute = args.disp_mute
     update = args.update
     examples = args.examples
+    exportmutes = args.export_mutes
+    importmutes = args.import_mutes
     exclude = args.exclude
     keywords = args.keyword
     afterdate = args.after_date
@@ -904,7 +918,39 @@ def main():
         cveobj = CVECheck(True)
     else:
         cveobj = CVECheck()
-
+    if importmutes != 'none':
+        with open(importmutes,'r') as inp:
+            lines=inp.readlines()
+        pobj=dict()
+        retval,pobj=cveobj.read_store('vulnstore.json',pobj)
+        changed = False
+        for line in lines:
+            entry=line.split('\n')[0]
+            if entry.startswith('#') or entry.startswith('//'):
+                continue
+            cve,prod,dts,reason=entry.split('|')
+            if pobj[cve].__contains__('lastmodifieddate'):
+                muteddobj = datetime.datetime.strptime(dts,'%Y-%m-%d %H:%M')
+                storedlmtdobj = datetime.datetime.strptime(pobj[cve]['lastmodifieddate'],'%Y-%m-%d %H:%M')
+                if storedlmtdobj > muteddobj: #we should not mute this
+                    print("Will not mute %s as it has a last modification date newer than the muting date."%cve)
+                    continue
+            changed = True
+            pobj[cve]['mute'] = 'on'
+            pobj[cve]['muteddate'] = dts
+            pobj[cve]['muting_product'] = prod
+            pobj[cve]['muting_reason'] = reason
+        if changed:
+            cveobj.write_store('vulnstore.json',pobj)
+        sys.exit(0)
+    if exportmutes != 'none':
+        with open(exportmutes,'w') as out:
+            pobj=dict()
+            retval,pobj=cveobj.read_store('vulnstore.json',pobj)
+            for cve,vals in pobj.items():
+                if vals['mute'] == 'on':
+                    out.write("%s|%s|%s|%s\n"%(cve,vals['muting_product'],vals['muteddate'],vals['muting_reason']))
+            sys.exit(0)
     if examples != 'none':
         print('./cvechecker.py: Simply displays the help.')
         print('./cvechecker.py -p http_server,tivoli,slurm,postgres,general_parallel_file_system,irods,torque_resource_manager,struts,java: Display CVEs against these products')
@@ -913,8 +959,7 @@ def main():
         print('./cvechecker.py -p chromium --severity Medium --mute off: Unmuting alerts for matching results')
         print('./cvechecker.py -d: Display CVEs that have been muted, and packages that it affects.')
         print('./cvechecker.py -k Intel,InfiniBand,AMD: Display CVEs with descriptions containing these keywords. Case-sensitive, to avoid too many false positives.')
-        sys.exit(0
-)
+        sys.exit(0)
     if afterdate != 'none':
         try:
             dtcheck = datetime.datetime.strptime(afterdate,'%Y-%m-%d')
