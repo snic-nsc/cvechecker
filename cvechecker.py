@@ -231,6 +231,14 @@ class Result:
                                         if excludes.__contains__(match['PackageName']):
                                             excluded = True
                                             break
+                    if not excluded:
+                        if val['redhat_info'].__contains__('AffectedRelease'):
+                            if len(val['redhat_info']['AffectedRelease']) >0:
+                                for match in val['redhat_info']['AffectedRelease']:
+                                    if match.__contains__('Package'):
+                                        if excludes.__contains__(match['Package']):
+                                            excluded = True
+                                            break
                 if excluded == True:
                     continue
 
@@ -295,6 +303,16 @@ class Result:
                                                 val['matchedon'] = product
                                                 val['matchtype'] = 'product'
                                                 break
+                                if not found:
+                                    if val['redhat_info'].__contains__('AffectedRelease'):
+                                        if len(val['redhat_info']['AffectedRelease']) >0:
+                                            for match in val['redhat_info']['AffectedRelease']:
+                                                if match.__contains__('Package'):
+                                                    if match['Package'].startswith(product):
+                                                        found = True
+                                                        val['matchedon'] = product
+                                                        val['matchtype'] = 'product'
+                                                        break
                         if found:
                             break
                     if not found:
