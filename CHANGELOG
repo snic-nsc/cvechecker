@@ -1,5 +1,9 @@
 # Change list
 
+## v1.17.4
+
+- Add support to interactively mark CVEs for subsequent manual muting; this generates an output file called whitelist_out which can be used for muting. 
+
 ## v1.17.3
 
 - Muting history for CVEs is not clobbered if they are already muted, thereby preserving the date they were first muted on,
