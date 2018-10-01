@@ -923,10 +923,11 @@ def main():
     aparser = argparse.ArgumentParser(description='A tool to fetch and update a local vulnerability store against select sources of vulnerability information. It can be queried for specific CVEs, by severity or product name, or a combination. Entries can be marked as "seen" to allow one to "mute" alerts.')
     aparser.add_argument("-a", "--after-date", type=str, nargs='?',default='none',help='only list matches whose last modified date is after the given date. Date format YYYY-MM-DD.')
     aparser.add_argument("-b", "--before-date", type=str, nargs='?',default='none',help='only list matches whose last modified date is before the given date. Date format YYYY-MM-DD. Useful to generate list of CVES to exclude/ignore.')
-    aparser.add_argument("-c", "--cve", type=str, default='none',help='output information about specified CVE or comma-separated list of CVEs. Cannot be combined with any other filter/option.')
+    aparser.add_argument("-c", "--cve", type=str, nargs='?',default='none',help='output information about specified CVE or comma-separated list of CVEs. Can specify a file containing a comma-seperated list of CVEs using the -f flag. Cannot be combined with any other filter/option.')
     aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. --cve or --product filters may be used in conjuction with -d.')
     aparser.add_argument("--examples", type=str, nargs='?',default='none',help='display usage examples.')
     aparser.add_argument("-e", "--export-mutes", type=str, default='none',help='export muted entries to file. Requires name of file to write output to.')
+    aparser.add_argument("-f", "--file", type=str, default='none',help='read list of CVEs from supplied file.')
     aparser.add_argument("-i", "--import-mutes", type=str, default='none',help='import muted entries from properly formatted import file (use --export-mutes to create a compliant file). Requires name of file to import the muted entry list from.')
     aparser.add_argument("-k", "--keyword", type=str, default='none',help='filter results by specified keyword/comma-separated list of keywords in CVE description text from NVD. Can be combined with -p, to get a union set.') #lookup by keyword e.g. Intel
     aparser.add_argument("-l", "--log-mute", type=str, nargs='?',default='none',help='log a custom message upon muting. Can specify log file as an optional argument.')
@@ -940,6 +941,7 @@ def main():
     aparser.add_argument("-x", "--exclude", type=str,default='none',help='suppress reporting for these packages; useful to avoid false-positive matches;  ex matching xenmobile for xen filter.') #exclude matches
     args = aparser.parse_args()
     cve = args.cve
+    cvefile = args.file
     noconnect = args.no_connection
     log_mute = args.log_mute
     severity = args.severity
@@ -1170,6 +1172,13 @@ def main():
         sys.exit(0)
 
     if cve != 'none':
+        if cve == None:
+            if cvefile == 'none':
+                print("No cve(s) or file containing cve(s) supplied.")
+                sys.exit(-1)
+            with open(cvefile,'r') as inp:
+                cveline=inp.readline()
+                cve=cveline.split('\n')[0]
         argsdict['cves'] = cve.split(',')
         argsdict['scores'] = None
         argsdict['products'] = None
