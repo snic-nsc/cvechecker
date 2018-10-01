@@ -1,5 +1,9 @@
 # Change list
 
+## v1.17.2
+
+- Added Redhat AffectedPackage information for package match and exclude, to improve detection rate.
+
 ## v1.17.1
 
 - Adopted semantic versioning.
