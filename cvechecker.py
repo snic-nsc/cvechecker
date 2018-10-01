@@ -321,12 +321,14 @@ class Result:
         #outside the loop
         
         if mute != 'none':
+            dtobj = datetime.datetime.utcnow()
+            dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
             for entry in newresultdict:
-                newresultdict[entry]['mute'] = mute
-                self.resultdict[entry]['mute'] = mute
-                dtobj = datetime.datetime.utcnow()
-                dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
                 if mute == 'on':
+                    if newresultdict[entry]['mute'] == 'on': #it has already been muted in the past. No need to destroy the record of the old muting or alter it
+                        continue
+                    newresultdict[entry]['mute'] = 'on'
+                    self.resultdict[entry]['mute'] = 'on'
                     newresultdict[entry]['muteddate'] = dtstr
                     newresultdict[entry]['status'] = 'Seen'
                     self.resultdict[entry]['muteddate'] = dtstr
@@ -344,6 +346,8 @@ class Result:
                         with open(log_mute['logfile'],'a') as inp:
                             inp.write("%s|%s|%s|%s\n"%(entry,log_mute['product'],dtstr,log_mute['muting_reason']))
                 else:
+                    newresultdict[entry]['mute'] = 'off'
+                    self.resultdict[entry]['mute'] = 'off'
                     newresultdict[entry]['muteddate'] = ''
                     self.resultdict[entry]['muteddate'] = ''
                     newresultdict[entry]['muting_product'] = ''
