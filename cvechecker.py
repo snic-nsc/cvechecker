@@ -196,7 +196,7 @@ class Result:
                 self.resultdict[cveid]['lastmodifieddate'] = lastmodifieddate
             return
 
-    def trim_result(self, products=None, keywords=None, scores=None, cves=None, afterdate=None, excludes=None, mute='none', log_mute=None):
+    def trim_result(self, products=None, keywords=None, scores=None, cves=None, afterdate=None, beforedate=None, excludes=None, mute='none', log_mute=None):
         newresultdict = dict()
         if cves != None:
             for cve in cves:
@@ -242,8 +242,24 @@ class Result:
                 if excluded == True:
                     continue
 
+                if beforedate != None:
+                    #first check for last-modified date. If absent, look for redhat affectedrelease; if that too isn't available, don't drop the result.
+                    if val.__contains__('lastmodifieddate'):
+                        dtobj = datetime.datetime.strptime(val['lastmodifieddate'],'%Y-%m-%d %H:%M')
+                        if not dtobj < beforedate:
+                            continue
+                    else:
+                        if val.__contains__('redhat_info') and val['redhat_info'].__contains__('AffectedRelease') and len(val['redhat_info']['AffectedRelease']) != 0:
+                            found=False
+                            for item in val['redhat_info']['AffectedRelease']:
+                                dtobj = datetime.datetime.strptime(item['ReleaseDate'],'%Y-%m-%dT%H:%M:%S')
+                                if dtobj > beforedate:
+                                    found=True
+                            if found == True:
+                                continue
+
                 if afterdate != None:
-                    #first check for last-modified date. If absent, look for redhat affectedrelease; if that too isn't available, drop result.
+                    #first check for last-modified date. If absent, look for redhat affectedrelease; if that too isn't available, don't drop result.
                     if val.__contains__('lastmodifieddate'):
                         dtobj = datetime.datetime.strptime(val['lastmodifieddate'],'%Y-%m-%d %H:%M')
                         if not dtobj > afterdate:
@@ -257,9 +273,6 @@ class Result:
                                     found=True
                             if found == False:
                                 continue
-                        else:
-                            #unable to determine if it's reasonably recent, so dropping, as we've been requested only to provide what is confirmed to be after a certain date
-                            continue
 
                 found = False
                 if keywords != None:
@@ -900,6 +913,7 @@ def main():
 
     aparser = argparse.ArgumentParser(description='A tool to fetch and update a local vulnerability store against select sources of vulnerability information. It can be queried for specific CVEs, by severity or product name, or a combination. Entries can be marked as "seen" to allow one to "mute" alerts.')
     aparser.add_argument("-a", "--after-date", type=str, nargs='?',default='none',help='only list matches whose last modified date is after the given date. Date format YYYY-MM-DD.')
+    aparser.add_argument("-b", "--before-date", type=str, nargs='?',default='none',help='only list matches whose last modified date is before the given date. Date format YYYY-MM-DD. Useful to generate list of CVES to exclude/ignore.')
     aparser.add_argument("-c", "--cve", type=str, default='none',help='output information about specified CVE or comma-separated list of CVEs. Cannot be combined with any other filter/option.')
     aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. --cve or --product filters may be used in conjuction with -d.')
     aparser.add_argument("--examples", type=str, nargs='?',default='none',help='display usage examples.')
@@ -930,6 +944,7 @@ def main():
     exclude = args.exclude
     keywords = args.keyword
     afterdate = args.after_date
+    beforedate = args.before_date
     readconfig = args.read_config
 
     argsdict = dict()
@@ -937,6 +952,7 @@ def main():
     argsdict['products'] = None
     argsdict['cves'] = None
     argsdict['afterdate'] = None
+    argsdict['beforedate'] = None
     argsdict['keywords'] = None
     argsdict['excludes'] = None
     resobj = Result()
@@ -997,13 +1013,24 @@ def main():
             sys.exit(-1)
         argsdict['afterdate']=dtcheck
 
+    if beforedate != 'none':
+        try:
+            dtcheck = datetime.datetime.strptime(beforedate,'%Y-%m-%d')
+        except:
+            print('Invalid date or incorrect format. Use the YYYY-MM-DD convention')
+            sys.exit(-1)
+        if cve != 'none':
+            print('Cannot specify -c and -b flags simultaneously')
+            sys.exit(-1)
+        argsdict['beforedate']=dtcheck
+
     if severity != 'none':
         scores = severity.split(',')
         for score in scores:
             if score != 'None' and score != 'Low' and score != 'High' and score != 'Medium' and score != 'Critical' and score != 'Missing':
                 print('Invalid severity level!')
                 sys.exit(-1)
-        if products == 'none' and afterdate == 'none' and keywords == 'none':
+        if products == 'none' and afterdate == 'none' and keywords == 'none' and beforedate == 'none':
             print('This option requires you to specify at least one product/keyword, or specify the --after-date option')
             sys.exit(-1)
         cve = 'none'
@@ -1130,12 +1157,13 @@ def main():
         argsdict['products'] = None
         argsdict['keywords'] = None
         argsdict['afterdate'] = None
+        argsdict['beforedate'] = None
         argsdict['excludes'] = None
 
     if len(sys.argv) == 1:
         aparser.print_help()
 
-    if mute != 'none' or products != 'none' or cve != 'none' or disp_mute != 'none' or keywords != 'none' or afterdate != 'none':
+    if mute != 'none' or products != 'none' or cve != 'none' or disp_mute != 'none' or keywords != 'none' or beforedate != 'none' or afterdate != 'none':
         retval,cveobj.resObj.resultdict = cveobj.read_store(cveobj.vulnstore,cveobj.resObj.resultdict)
         if retval == -1:
             print('Trouble initializing from local vuln store. Aborting.')
