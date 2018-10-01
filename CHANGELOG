@@ -1,5 +1,10 @@
 # Change list
 
+## v1.17.3
+
+- Muting history for CVEs is not clobbered if they are already muted, thereby preserving the date they were first muted on,
+and also the original comments (if any).
+
 ## v1.17.2
 
 - Added Redhat AffectedPackage information for package match and exclude, to improve detection rate.
