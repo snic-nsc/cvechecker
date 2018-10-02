@@ -1,9 +1,20 @@
-# What does this tool do ?
+# What is `CVEChecker` ?
 
-- `cvechecker` can be used in two ways:
-    - Perform dynamic lookups on the CVE store it setups, restricting the results on the basis of user-specified filters (CVE id, product-name, keyword, CVE severity etc)
-    - Scripted execution to generate alerts against prespecified lists of packages and keywords, which can then be emailed to administrators.
-- It supports muting, which can be used to generate a single alert per every new issue, to prevent being inundated with repeated alerts for the same issue(s).
+- `CVEChecker` is a tool that aggregates CVE information from Redhat and the [NVD data feeds](https://nvd.nist.gov/vuln/data-feeds), to setup a local vulnerability store that can be queried offline.
+- Vulnerabilities can be looked up on the basis of user-specified parameters such as a product name, keywords in the vulnerability description, or the CVEid itself.
+- Filters such as `--afterdate`, `--beforedate`, `--severity`, `--exclude` can be used alongside other search-parameters to sharpen search results, and/or reduce noise.
+- CVEs can be whitelisted or muted after analysis, to prevent it from popping up every time; however, if there's been any change to the CVE itself (change in severity score, addition of reference links, or modification in CPE lists), muted CVEs are automatically unmuted, so you get to know if there's any change in the status, or if you need to do anything more.
+- `CVEChecker` can be configured to work in a totally automated manner in which it emails alerts once for every new issue, before it auto-mutes it. This is useful if you wish to set it up as an early-warning system, but don't want to get spammed. 
+
+
+- The `runcvechecker.sh` script allows `CVEChecker` to be setup for automated operations.  An example cron configuration is given below:
+
+```
+[pchengi@datil ~]$ crontab -l
+PATH=/usr/bin:/usr/local/bin:/usr/local/sbin:/bin
+15 * * * * cd /home/pchengi/cvechecker && python3 cvechecker.py -u >/dev/null 2>&1
+30 * * * * bash /home/pchengi/runcvechecker.sh
+```
 
 # Requirements
 
@@ -14,17 +25,18 @@
 
 # Python 2.7 support
 
-- Release v1.13-p2 (p2 branch) of cvechecker is intended to be the last release for Python 2.7; active development will now only continue for Python 3.
+- Release v1.13-p2 (p2 branch) of `CVEChecker` is intended to be the last release for Python 2.7; active development will now only continue for Python 3.
 - Functionality-wise, release v1.13 (for python3) is exactly the same as release v1.13-p2 (for python2); for later tags, check the commit messages.
 
 # Configuration and Deployment
 
 - CVE checker uses National Vulnerability Database (NVD) vulnerability feeds (json) and Redhat cvemap.xml as sources to build the vulnerability store.
-- There are two configuration files that determine the behavior of the `cvechecker` program; `nvdchannels.conf` and `cvechecker.conf` files.
-- Execute firstuse.sh prior to first run; this sets up an empty vulnerability store json file, an empty file into which checksums of downloaded files would be stored, and it sets up the `nvdchannels.conf` file, using the `nvdchannels.conf.tmpl` as the starting point. 
+- There are two configuration files that determine the behavior of the `CVEChecker` program; `nvdchannels.conf` and `cvechecker.conf` files.
+- Execute `firstuse.sh` prior to first run; this sets up an empty vulnerability store json file, an empty file into which checksums of downloaded files would be stored, and it sets up the `nvdchannels.conf` file, using the `nvdchannels.conf.tmpl` as the starting point. 
 - Inspect the nvdchannels.conf file to add/remove any more feeds from NVD, and ensure that the entry for`CVE-Modified.json` appears at the bottom of the file, i.e. as the last entry.
-- Copy the `cvechecker.conf.template` file as `cvechecker.conf`, and change the values mentioned there, to whatever is appropriate for your setup, with correct values for sender and recipient addresses, and email server details.
-- Execute ./cvechecker.py -u , to fetch required files and initialize the local vulnerability store.
+- Copy the `cvechecker.conf.template` file as `cvechecker.conf`, and change the values mentioned there, to whatever is appropriate for your setup, with correct values. Email sender and recipient information, email server etc needs to be setup if you wish to use the `runcvechecker.sh` script.
+- You can have different configuration files, each setup with different products, keywords, and exclude filters, to check against different product sets. You can specify an alternate configuration file as an argument to the  `-r` option.
+- Execute `python3 cvechecker.py -u`  to fetch required files and initialize the local vulnerability store. After the initial setup, perform the `-u` operation regularly, to keep the local vulnerabitily store updated. 
 - Copy the `runcvechecker.sh` script to the parent directory of the directory containing the `cvechecker` files.
 - The last line of the output shows the number of entries in your newly constructed CVE store. If everything's gone well, it should be a rather large number. The output looks like this:
 
@@ -43,173 +55,123 @@ Update available for {'url': 'https://nvd.nist.gov/feeds/json/cve/1.0/nvdcve-1.0
 Could not look up old checksum for file CVE-Modified.json. Will add
 48358
 ```
-- Execute ./cvechecker.py (without arguments), to display the help menu.
-- Execute ./cvechecker.py -e , to get examples for usage.
+# Manual whitelisting and exporting/importing list of muted CVEs
 
-# How to use
-
-- `cvechecker` can be used as a tool to look-up 
-
-# Sample crontab entries and run script
-
-Given below is an example on how one can setup regular updates and runs of `cvechecker`. It's very essential that the `cvechecker.py -u` operation is executed regularly, to ensure that the latest known CVE definitions are used by the program. The tool itself can be run either by hand, or if you require a scripted execution, the runcvechecker.sh script not only runs the check in a preconfigured manner, but also emails  alerts to the configured recipients, and finishes by muting the entries which resulted in alert notifications, to prevent a subsequent run of the program from raising alerts for a second time.
-
-# Operations
-
-- `cvechecker` can peform the following tasks
-    - update CVE definitions by fetching the latest versions of the vulnerability sources, i.e. the cvemap.xml file from redhat, and the CVE-<chosen-year>.json and CVE-Modified.json files, from NVD.
-    - look up a CVE or CVEs from the store, using a filter or combination of available filters,  and printing details about the resulting matches (if any).
-    - mute a CVE or CVEs in the store, so they don't get reported again when the same set of search filters are used; if there are any changes or updates that are made to a CVE or CVEs by NVD, or by Redhat, the entries are unmuted, if they were previously muted.
-
-## Filters
-
-- The help menu describes the available filters, and even potential combinations of filters, in a fairly detailed manner. I'll simply list the output here:
+- It is useful, and sometimes important, to have full control over the whitelisting process, and not have it happen automatically. 
+- You might also wish to log comments as to why you whitelisted (muted) a certain CVE.
+- Manually whitelisting CVEs is a time-consuming activity, and you might want to export the list of CVEs you have muted, to be able to import it on another installation, or to be able to share it with others interested in the same search parameters.
+- The `-m` option controls muting: `-m on` turns muting on and `-m off` turns muting off. Muting can be done on a single CVE, or to a whole set of CVEs that match a defined set of parameters. Use with caution.
+- For example, `python3 cvechecker.py -p kernel -m on` mutes all known CVEs related to the package 'kernel'. 
+- You can display muted CVEs by using the `-d` option, with or without other search parameters. 
+- You can use the `-l` flag with `-m on` to log comments about why you are muting the CVE. This information is exported when you use the `-e` option, to export the list of CVEs you have muted.
 
 ````
-usage: cvechecker.py [-h] [-a [AFTER_DATE]] [-c CVE] [-d [DISP_MUTE]]
-                     [-e [EXAMPLES]] [-k KEYWORD] [-m MUTE] [-n [NO_UPDATE]]
-                     [-p PRODUCT] [-r [READ_CONFIG]] [-s SEVERITY]
-                     [-u [UPDATE]] [-x EXCLUDE]
+pchengi@thebeast:~/cvechecker$ python3 cvechecker.py -c CVE-2017-7546 -m on -l
+Product name?
+postgresql
+Reason for muting?
+Issue fixed in postgresql-8.4.20-8.el6_9 released in October 2017
+pchengi@thebeast:~/cvechecker$ python3 cvechecker.py -e exportedmutes
 
-A tool to fetch and update a local vulnerability store against select sources
-of vulnerability information. It can be queried for specific CVEs, by severity
-or product name, or a combination. Entries can be marked as "seen" to allow
-one to "mute" alerts for onal words into the corpus.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -a [AFTER_DATE], --after-date [AFTER_DATE]
-                        only list matches whose last modified date is after
-                        the given date. Date format YYYY-MM-DD.
-  -c CVE, --cve CVE     output information about specified CVE or comma-
-                        separated list of CVEs. Cannot be combined with any
-                        other filter/option.
-  -d [DISP_MUTE], --disp-mute [DISP_MUTE]
-                        display muted entries. --cve or --product filters may
-                        be used in conjuction with -d.
-  -e [EXAMPLES], --examples [EXAMPLES]
-                        display usage examples.
-  -k KEYWORD, --keyword KEYWORD
-                        filter results by specified keyword/comma-separated
-                        list of keywords in CVE description text from NVD. Can
-                        be combined with -p, to get a union set.
-  -m MUTE, --mute MUTE  set mute on or off, to silence/unsilence reporting.
-                        Must be used in combination with one of --product or
-                        --cve options
-  -n [NO_UPDATE], --no-update [NO_UPDATE]
-                        do not connect to fetch updated CVE information
-                        (useful while debugging).
-  -p PRODUCT, --product PRODUCT
-                        filter results by specified product name or comma-
-                        separated list of products.
-  -r [READ_CONFIG], --read-config [READ_CONFIG]
-                        read package and keyword filter values from the
-                        configuration file. Additional filters may be provided
-                        on the command-line. Optional argument: configuration
-                        file to be read; defaults to cvechecker.conf
-  -s SEVERITY, --severity SEVERITY
-                        filter results by severity level. Valid levels are
-                        "None", "Low", "Medium", "High", and "Critical". Needs
-                        to be used with --product.
-  -u [UPDATE], --update [UPDATE]
-                        update the vulnerability store. Should be run
-                        regularly, preferably from a cron.
-  -x EXCLUDE, --exclude EXCLUDE
-                        suppress reporting for these packages; useful to avoid
-                        false-positive matches; ex matching xenmobile for xen
-                        filter.
+pchengi@thebeast:~/cvechecker$ cat exportedmutes 
+CVE-2017-7546|postgresql|2018-10-02 09:28|Issue fixed in postgresql-8.4.20-8.el6_9 released in October 2017
 ````
-## Scripted/automated execution
+- You can use the exported file containing the muting information to import it onto a fresh system, to get all the CVEs muted instantly. 
+- While importing muting information from a file, the muting timestamp is inspected; if a CVE has been modified since the last time it was muted, it won't be muted while importing it.
 
-- The run script `runcvechecker.sh` gives an example of how `cvechecker` can be used to perform searches for vulnerabilities against products of interest, and handle emailing of alerts to preconfigured recipients.
-- If there are matches against the preconfigured search criteria, the report is broken down into one email per issue, and the alerts are emailed to the preconfigured recipients. Note that it is very important to have correct values setup in the `cvechecker.conf` file, prior to running the `runcvechecker.sh` script. Also, remember that the `runcvechecker.sh` script is to be copied into the parent directory containing the cvechecker directory, and the full path to this script is to be used in the cron, if you wish to automate running of the script with cron.
-- After the email alerts (if any) are dispatched, the matching results for that query are then muted, to ensure they don't turn up in the alerts in the subsequent run. If there are any updates to the CVE(s) (by either NVD or Redhat), it is unmuted, if it had been muted earlier. This ensures that updates if any don't go unnoticed, while simultaneously avoiding bombardment of alert notifications for the same issue(s).
+# Using the whitelist-helper (`-w`)
 
-```
-[pchengi@datil ~]$ crontab -l
-PATH=/usr/bin:/usr/local/bin:/usr/local/sbin:/bin
-15 * * * * cd /home/pchengi/cvechecker && python3 cvechecker.py -u >/dev/null 2>&1
-30 * * * * bash /home/pchengi/runcvechecker.sh
-```
-- The runcvechecker.sh script, and other helper scripts (splitreports.sh, mailsend.py) are available in this repo.
-- Remember to setup the cvechecker.conf file with correct values (using cvechecker.conf.template as a template, for syntax etc) before running runcvechecker.sh.
+- If you've generated a report for a certain product or combination of search parameters, you can use the whitelist-helper, to quickly select CVEs for whitelisting (muting). To launch the helper, simply use the same search parameters as you used for the report generation, but include the `-w` flag. 
+- The whitelist-helper prompts your response for every listed CVE for the selected search-parameters; you can go through the report in a different terminal while you run the whitelist-helper.
+- The default response is Y, which selects the CVE for subsequent muting. 
+- You can press Ctrl-C at any point, and you won't lose responses made till that point. 
+- The cves selected by you for whitelisting will be written out to `whitelist_out`.
+- The whitelist-helper only generates a list of CVEs, and doesn't actually mute/whitelist anything. The output file can be used as input for a subsequent manual muting operation.
 
-- If you are looking up a product/keyword for the first time, or if you've never muted the results of your search, their status will show up as 'Fresh'; if the results have been muted, the status will reflect 'Seen', and if there's been any update since the last time it entered the system and/or muted, the status would say 'Update'.
-```
-[pchengi@esg-idx cvechecker]$ ./cvechecker.py -p irods
----BEGIN REPORT---
-CVE-2017-8799
-=============
-https://nvd.nist.gov/vuln/detail/CVE-2017-8799
+````
+pchengi@thebeast:~/cvechecker$ python3 cvechecker.py -p struts -w
+Whitelist entry CVE-2011-1772?(Y/n)
+Whitelist entry CVE-2011-2087?(Y/n)
+Whitelist entry CVE-2011-2088?(Y/n)n
+Whitelist entry CVE-2013-1965?(Y/n)n
+Whitelist entry CVE-2013-1966?(Y/n)^Cbye
+pchengi@thebeast:~/cvechecker$ cat whitelist_out 
+CVE-2011-1772,CVE-2011-2087
 
-Status: Fresh
-Score 9.8 (Critical)
-Last Modification date: 2017-05-17 19:33
+pchengi@thebeast:~/cvechecker$ python3 cvechecker.py --cve --file whitelist_out -m on -l
+Product name?
+Apache Struts
+Reason for muting?
+CVEs against older versions of Struts.
+pchengi@thebeast:~/cvechecker$ python3 cvechecker.py -e exportedmutes 
 
-Info from Redhat
-----------------
-Nil
+pchengi@thebeast:~/cvechecker$ cat exportedmutes 
+CVE-2011-1772|Apache Struts|2018-10-02 09:46|CVEs against older versions of Struts.
+CVE-2011-2087|Apache Struts|2018-10-02 09:46|CVEs against older versions of Struts.
+CVE-2017-7546|postgresql|2018-10-02 09:28|Issue fixed in postgresql-8.4.20-8.el6_9 released in October 2017
+````
+## Description of filters and the output
 
-Info from NVD
--------------
-
-Untrusted input execution via igetwild in all iRODS versions before 4.1.11 and 4.2.1 allows other iRODS users (potentially anonymous) to execute remote shell commands via iRODS virtual pathnames. To exploit this vulnerability, a virtual iRODS pathname that includes a semicolon would be retrieved via igetwild. Because igetwild is a Bash script, the part of the pathname following the semicolon would be executed in the user's shell.
-
-Affected Products
------------------
-
-Vendor: irods
-
-        Product: irods
-        Affected Versions: 4.1.10, 4.2.0
-
-References
-----------
-
-https://github.com/irods/irods/issues/3452    
-CONFIRM    
-https://github.com/irods/irods/issues/3452    
----END REPORT---
-```
-
-- After muting (./cvechecker.py -p irods -m on), you could display it by using the -d flag (display-muted); the output will note that this is a muted entry, and will note the date it was last muted on. The status is also shown as 'Seen'.
+- Not all options output information onto standard out; `-m` option, when used without `-l` option, is silent. 
+- `--cve` cannot be clubbed with other filters.
+- Options such as `--severity` and `--whitelist-helper` need other filters to be used simultaneously.
+- When there are matches against the selected search parameters, you'll get the output containing the matches.
+- Even if multiple products/keywords match the same CVEs, the output will list the CVE only once, i.e. no duplicates.
+- Every CVE is preceeded by `---BEGIN REPORT---` and succeeded by `---END REPORT---`; these headers/footers are used by the helper-script `splitreport.sh`, to chunk the report into one-CVE-per-message format, for easy emailing. 
+- Use of the `-d` flag displays only matching results which are already muted. 
+- In the report, a CVE can have multiple values for the `Status` field:
+    - `Fresh`: this CVE has not been muted since it was added to the local vulnerability store.
+    - `Seen`: this CVE has been viewed in the past and muted.
+    - `Update`: this CVE has been modified since it was added to the local vulnerability store; changes could include additional references, a change in the CVSSv3 score, or changes in the list of affected products/versions. 
+    - `R-Update`: this CVE has been modified since it was added to the local vulnerability store, but the only change is additional references. 
+- In the report, the `First seen date` displays the date the entry was added to the local vulnerability store; this could be the date of initialization of the database, in the case of older CVEs.
+- The `Last Modification date` displays the date there was the last modification/update to this CVE.
 
 ```
-[pchengi@esg-idx cvechecker]$ ./cvechecker.py -p irods -d
+pchengi@thebeast:~/cvechecker$ python3 cvechecker.py --cve CVE-2017-7546 -d
 Printing muted entry
-Record insertion date: 2018-06-29 07:41
-Record muted date: 2018-06-29 07:47
+Record insertion date: 2018-10-02 09:21
+Record muted date: 2018-10-02 09:28
 ---BEGIN REPORT---
-CVE-2017-8799
-=============
-https://nvd.nist.gov/vuln/detail/CVE-2017-8799
+CVE-2017-7546 postgresql: Empty password accepted in some authentication methods
+================================================================================
+https://nvd.nist.gov/vuln/detail/CVE-2017-7546
 
 Status: Seen
 Score 9.8 (Critical)
-Last Modification date: 2017-05-17 19:33
+First seen date: 2018-10-02 09:21
+Last Modification date: 2018-07-17 18:07
 
 Info from Redhat
 ----------------
-Nil
 
-Info from NVD
--------------
+It was found that authenticating to a PostgreSQL database account with an empty password was possible despite libpq's refusal to send an empty password. A remote attacker could potentially use this flaw to gain access to database accounts with empty passwords.
+....
+````
 
-Untrusted input execution via igetwild in all iRODS versions before 4.1.11 and 4.2.1 allows other iRODS users (potentially anonymous) to execute remote shell commands via iRODS virtual pathnames. To exploit this vulnerability, a virtual iRODS pathname that includes a semicolon would be retrieved via igetwild. Because igetwild is a Bash script, the part of the pathname following the semicolon would be executed in the user's shell.
+- If the status is `Update`, a changelog section also appears in the report.
 
-Affected Products
------------------
+````
+pchengi@thebeast:~/cvechecker$ python3 cvechecker.py -c CVE-2018-14678
+---BEGIN REPORT---
+CVE-2018-14678 xen: Uninitialized state in x86 PV failsafe callback path (XSA-274)
+==================================================================================
+https://nvd.nist.gov/vuln/detail/CVE-2018-14678
 
-Vendor: irods
+Status: Update
+Score 7.8 (High)
+First seen date: 2018-09-20 14:20
+Last Modification date: 2018-10-01 02:04
 
-        Product: irods
-        Affected Versions: 4.1.10, 4.2.0
-
-References
+Changelog
 ----------
 
-https://github.com/irods/irods/issues/3452    
-CONFIRM    
-https://github.com/irods/irods/issues/3452    
----END REPORT---
-```
+Present score: 7.8. Previous score: Missing
+
+
+Info from Redhat
+----------------
+
+An issue was discovered in the Linux kernel through 4.17.11, as used in Xen through 4.11.x. The xen_failsafe_callback entry point in arch/x86/entry/entry_64.S does not properly maintain RBX, which allows local users to cause a denial of service (uninitialized memory usage and system crash). Within Xen, 64-bit x86 PV Linux guest OS users can trigger a guest OS crash or possibly gain privileges.
+....
+````

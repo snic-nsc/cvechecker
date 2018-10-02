@@ -1,7 +1,10 @@
-usage: cvechecker.py [-h] [-a [AFTER_DATE]] [-c CVE] [-d [DISP_MUTE]]
-                     [-e [EXAMPLES]] [-k KEYWORD] [-m MUTE]
+usage: cvechecker.py [-h] [-a [AFTER_DATE]] [-b [BEFORE_DATE]] [-c [CVE]]
+                     [-d [DISP_MUTE]] [--examples [EXAMPLES]]
+                     [-e EXPORT_MUTES] [-f FILE] [-i IMPORT_MUTES]
+                     [-k KEYWORD] [-l [LOG_MUTE]] [-m MUTE]
                      [-n [NO_CONNECTION]] [-p PRODUCT] [-r [READ_CONFIG]]
-                     [-s SEVERITY] [-u [UPDATE]] [-x EXCLUDE]
+                     [-s SEVERITY] [-u [UPDATE]] [-w [WHITELIST_HELPER]]
+                     [-x EXCLUDE]
 
 A tool to fetch and update a local vulnerability store against select sources
 of vulnerability information. It can be queried for specific CVEs, by severity
@@ -13,18 +16,36 @@ optional arguments:
   -a [AFTER_DATE], --after-date [AFTER_DATE]
                         only list matches whose last modified date is after
                         the given date. Date format YYYY-MM-DD.
-  -c CVE, --cve CVE     output information about specified CVE or comma-
-                        separated list of CVEs. Cannot be combined with any
-                        other filter/option.
+  -b [BEFORE_DATE], --before-date [BEFORE_DATE]
+                        only list matches whose last modified date is before
+                        the given date. Date format YYYY-MM-DD. Useful to
+                        generate list of CVES to exclude/ignore.
+  -c [CVE], --cve [CVE]
+                        output information about specified CVE or comma-
+                        separated list of CVEs. Can specify a file containing
+                        a comma-seperated list of CVEs using the -f flag.
+                        Cannot be combined with any other filter/option.
   -d [DISP_MUTE], --disp-mute [DISP_MUTE]
                         display muted entries. --cve or --product filters may
                         be used in conjuction with -d.
-  -e [EXAMPLES], --examples [EXAMPLES]
+  --examples [EXAMPLES]
                         display usage examples.
+  -e EXPORT_MUTES, --export-mutes EXPORT_MUTES
+                        export muted entries to file. Requires name of file to
+                        write output to.
+  -f FILE, --file FILE  read list of CVEs from supplied file.
+  -i IMPORT_MUTES, --import-mutes IMPORT_MUTES
+                        import muted entries from properly formatted import
+                        file (use --export-mutes to create a compliant file).
+                        Requires name of file to import the muted entry list
+                        from.
   -k KEYWORD, --keyword KEYWORD
                         filter results by specified keyword/comma-separated
                         list of keywords in CVE description text from NVD. Can
                         be combined with -p, to get a union set.
+  -l [LOG_MUTE], --log-mute [LOG_MUTE]
+                        log a custom message upon muting. Can specify log file
+                        as an optional argument.
   -m MUTE, --mute MUTE  set mute on or off, to silence/unsilence reporting.
                         Must be used in combination with one of --product or
                         --cve options
@@ -47,6 +68,9 @@ optional arguments:
   -u [UPDATE], --update [UPDATE]
                         update the vulnerability store. Should be run
                         regularly, preferably from a cron.
+  -w [WHITELIST_HELPER], --whitelist-helper [WHITELIST_HELPER]
+                        interactively select results for adding to whitelisted
+                        file, for subsequent manual muting.
   -x EXCLUDE, --exclude EXCLUDE
                         suppress reporting for these packages; useful to avoid
                         false-positive matches; ex matching xenmobile for xen

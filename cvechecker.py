@@ -937,7 +937,7 @@ def main():
     aparser.add_argument("-r", "--read-config", type=str, nargs='?',default='none',help='read package and keyword filter values from the configuration file. Additional filters may be provided on the command-line. Optional argument: configuration file to be read; defaults to cvechecker.conf')
     aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical". Needs to be used with --product, or --after-date.') #lookup by severity level
     aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the vulnerability store. Should be run regularly, preferably from a cron.')
-    aparser.add_argument("-w","--whitelist", type=str, nargs='?', default='none',help='interactively select results for adding to whitelisted file, for subsequent manual muting.')
+    aparser.add_argument("-w","--whitelist-helper", type=str, nargs='?', default='none',help='interactively select results for adding to whitelisted file, for subsequent manual muting.')
     aparser.add_argument("-x", "--exclude", type=str,default='none',help='suppress reporting for these packages; useful to avoid false-positive matches;  ex matching xenmobile for xen filter.') #exclude matches
     args = aparser.parse_args()
     cve = args.cve
@@ -953,7 +953,7 @@ def main():
     exportmutes = args.export_mutes
     importmutes = args.import_mutes
     exclude = args.exclude
-    whitelist = args.whitelist
+    whitelist = args.whitelist_helper
     keywords = args.keyword
     afterdate = args.after_date
     beforedate = args.before_date
