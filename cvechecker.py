@@ -436,8 +436,12 @@ class Result:
                     print("Information other than what is tracked by cvechecker, has been modified, e.g addition of CWE.")
                     print("Check for updates here: https://nvd.nist.gov/vuln/detail/%s#VulnChangeHistorySection"%(key))
             print("")
-            print("Info from Redhat")
-            print("----------------")
+            hdr="Info from Redhat on %s"%key
+            print(hdr)
+            hdrlen = len(hdr)
+            for i in range(0,hdrlen):
+                sys.stdout.write('-')
+            print("")
             rhinfoavailable = False
             if self.resultdict[key]['details'] != None:
                 rhinfoavailable = True
@@ -454,8 +458,12 @@ class Result:
 
                 if  rhinfoavailable == True:
                     print("")
-                    print("Redhat Platform info")
-                    print("--------------------")
+                    hdr="Redhat Platform info"
+                    print(hdr)
+                    hdrlen = len(hdr)
+                    for i in range(0,hdrlen):
+                        sys.stdout.write('-')
+                    print("")
                     if len(self.resultdict[key]['redhat_info']['PackageState']) >0:
                         print("")
                         print("Package State")
@@ -483,8 +491,11 @@ class Result:
             else:
                 print("Nil")
             print("")
-            print("Info from NVD")
-            print("-------------")
+            hdr="Info from NVD on %s"%key
+            print(hdr)
+            hdrlen = len(hdr)
+            for i in range(0,hdrlen):
+                sys.stdout.write('-')
             print("")
             if len(self.resultdict[key]['nvddescriptions']) != 0:
                 for desc in self.resultdict[key]['nvddescriptions']:
