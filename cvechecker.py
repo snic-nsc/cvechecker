@@ -431,12 +431,12 @@ class Result:
                 if changelog['score'] == True:
                     print("Present score: %s. Previous score: %s\n"%(val['score'],val['history'][lastitem]['score']))
                 if changelog['nvdrefs'] == True:
-                    print("References section updated. Diff follows\n")
+                    print("References section updated. Diff follows.\n")
                     diff=difflib.unified_diff(val['history'][lastitem]['nvdrefs'],val['nvdrefs'],lineterm='')
                     print('\n'.join(diff))
                     print('\n')
                 if changelog['nvddescriptions'] == True:
-                    print("NVD's description of the vulnerability has been modified. Diff follows\n")
+                    print("NVD's description of the vulnerability has been modified. Diff follows.\n")
                     diff=difflib.unified_diff(val['history'][lastitem]['nvddescriptions'],val['nvddescriptions'],lineterm='')
                     print('\n'.join(diff))
                     print('\n')
@@ -456,7 +456,7 @@ class Result:
                 print(self.resultdict[key]['details'])
                 if self.resultdict[key]['redhat_info']['score'] != 11:
                     if val['score'] != 11 and val['score'] != self.resultdict[key]['redhat_info']['score']:
-                        print('Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE, but NVD notes %s. NVD is to be considered a more reliable source'%(self.resultdict[key]['redhat_info']['score'],val['score']))
+                        print('Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE, but NVD notes %s. NVD is to be considered a more reliable source.'%(self.resultdict[key]['redhat_info']['score'],val['score']))
                     else:
                         print('Redhat cvemap.xml notes a CVSSV3 score of %s for this CVE.'%(self.resultdict[key]['redhat_info']['score']))
 
@@ -574,7 +574,7 @@ class CVECheck:
                 channelinfo[fname]['metaurl'] = metaurl
                 channelinfo[fname]['zip'] = zip
         except:
-            print("Catastrophic error with nvdchannels.conf. Check contents for syntax. Refer to nvdchannels.conf.tmpl for help")
+            print("Catastrophic error with nvdchannels.conf. Check contents for syntax. Refer to nvdchannels.conf.tmpl for help.")
             sys.exit(-1)
 
         cksums = dict()
@@ -601,7 +601,7 @@ class CVECheck:
                 if not self.dontconnect:
                     retval,sha256sum = self.compute_checksum(channel)
                     if sha256sum != channelinfo[channel]['sha256sum']:
-                        print("Update available for %s"%channelinfo[channel])
+                        print("Update available for %s."%channelinfo[channel])
                         urllib.request.urlretrieve(channelinfo[channel]['url'],channelinfo[channel]['zip'])
                         f=gzip.GzipFile(channelinfo[channel]['zip'], 'rb')
                         fcontent = f.read()
@@ -630,7 +630,7 @@ class CVECheck:
                     if retval == -1:
                         raise
             except:
-                print("NVD json files not found. Execute cvechecker.py -u and retry")
+                print("NVD json files not found. Execute cvechecker.py -u and retry.")
                 raise
             #this is the unupdated case. Local nvd files are available for reading
             return(False,channelinfo)
@@ -846,7 +846,7 @@ class CVECheck:
         try:
             self.write_store(self.vulnstore,self.resObj.resultdict)
         except:
-            print('Fatal error writing output into local vuln store file')
+            print('Fatal error writing output into local vuln store file.')
             sys.exit(-1)
         return
     
@@ -900,7 +900,7 @@ class CVECheck:
                         outfile.write("%s %s\n"%(cksums[file],file))
                 return(1)
         except:
-            print("Could not look up old checksum for file %s. Will add"%(fname))
+            print("Could not look up old checksum for file %s; will add."%(fname))
             cksums[fname]= sha256sum
             with open('sha256sums','w') as outfile:
                 for file in cksums:
@@ -1027,10 +1027,10 @@ def main():
             sys.exit(0)
     if examples != 'none':
         print('./cvechecker.py: Simply displays the help.')
-        print('./cvechecker.py -p http_server,tivoli,slurm,postgres,general_parallel_file_system,irods,torque_resource_manager,struts,java: Display CVEs against these products')
-        print('./cvechecker.py -p postgres,http_server --severity=High,Critical,Missing: List vulnerabilities if any, for specified products, and filter on CVE score')
-        print('./cvechecker.py -p postgres --severity Medium --mute on: Muting alerts for all matching results')
-        print('./cvechecker.py -p chromium --severity Medium --mute off: Unmuting alerts for matching results')
+        print('./cvechecker.py -p http_server,tivoli,slurm,postgres,general_parallel_file_system,irods,torque_resource_manager,struts,java: Display CVEs against these products.')
+        print('./cvechecker.py -p postgres,http_server --severity=High,Critical,Missing: List vulnerabilities if any, for specified products, and filter on CVE score.')
+        print('./cvechecker.py -p postgres --severity Medium --mute on: Muting alerts for all matching results.')
+        print('./cvechecker.py -p chromium --severity Medium --mute off: Unmuting alerts for matching results.')
         print('./cvechecker.py -d: Display CVEs that have been muted, and packages that it affects.')
         print('./cvechecker.py -k Intel,InfiniBand,AMD: Display CVEs with descriptions containing these keywords. Case-sensitive, to avoid too many false positives.')
         sys.exit(0)
@@ -1038,10 +1038,10 @@ def main():
         try:
             dtcheck = datetime.datetime.strptime(afterdate,'%Y-%m-%d')
         except:
-            print('Invalid date or incorrect format. Use the YYYY-MM-DD convention')
+            print('Invalid date or incorrect format. Use the YYYY-MM-DD convention.')
             sys.exit(-1)
         if cve != 'none':
-            print('Cannot specify -c and -a flags simultaneously')
+            print('Cannot specify -c and -a flags simultaneously.')
             sys.exit(-1)
         argsdict['afterdate']=dtcheck
 
@@ -1049,10 +1049,10 @@ def main():
         try:
             dtcheck = datetime.datetime.strptime(beforedate,'%Y-%m-%d')
         except:
-            print('Invalid date or incorrect format. Use the YYYY-MM-DD convention')
+            print('Invalid date or incorrect format. Use the YYYY-MM-DD convention.')
             sys.exit(-1)
         if cve != 'none':
-            print('Cannot specify -c and -b flags simultaneously')
+            print('Cannot specify -c and -b flags simultaneously.')
             sys.exit(-1)
         argsdict['beforedate']=dtcheck
 
@@ -1063,7 +1063,7 @@ def main():
                 print('Invalid severity level!')
                 sys.exit(-1)
         if products == 'none' and afterdate == 'none' and keywords == 'none' and beforedate == 'none':
-            print('This option requires you to specify at least one product/keyword, or specify the --after-date option')
+            print('This option requires you to specify at least one product/keyword, or specify the --after-date option.')
             sys.exit(-1)
         cve = 'none'
         argsdict['scores'] = scores
@@ -1076,7 +1076,7 @@ def main():
             if not argsdict['products'].__contains__(prod):
                 argsdict['products'].append(prod)
         if cve != 'none':
-            print('Cannot specify -c and -p flags simultaneously')
+            print('Cannot specify -c and -p flags simultaneously.')
             sys.exit(-1)
         cve = 'none'
 
@@ -1087,7 +1087,7 @@ def main():
             if not argsdict['keywords'].__contains__(kwd):
                 argsdict['keywords'].append(kwd)
         if cve != 'none':
-            print('Cannot specify -c and -k flags simultaneously')
+            print('Cannot specify -c and -k flags simultaneously.')
             sys.exit(-1)
         cve = 'none'
 
@@ -1098,7 +1098,7 @@ def main():
             if not argsdict['excludes'].__contains__(excl):
                 argsdict['excludes'].append(excl)
         if cve != 'none':
-            print('Cannot specify -c and -x flags simultaneously')
+            print('Cannot specify -c and -x flags simultaneously.')
             sys.exit(-1)
 
     if readconfig != 'none':
@@ -1152,12 +1152,12 @@ def main():
                             if not argsdict['excludes'].__contains__(excl):
                                 argsdict['excludes'].append(excl)
         except:
-            print('Config file %s not present or contents unreadable'%cveobj.conffile)
+            print('Config file %s not present or contents unreadable.'%cveobj.conffile)
             sys.exit(-1)
       
     if mute != 'none':
         if mute != 'on' and mute != 'off':
-            print('Value for mute flag can only be "off" or "on"')
+            print('Value for mute flag can only be "off" or "on".')
             sys.exit(-1)
         if products == 'none' and cve == 'none' and keywords == 'none':
             print('Mute flag requires the use of the --product, --keyword, or the --cve filter. If --cve is specified with other filters, the other filters are ignored.')
@@ -1180,7 +1180,7 @@ def main():
 
     if whitelist != 'none':
         if cve != 'none':
-            print('Cannot specify -c and --whitelist flags simultaneously')
+            print('Cannot specify -c and --whitelist flags simultaneously.')
             sys.exit(-1)
         if products == 'none' and keywords == 'none':
             print('Interactive whitelisting requires the use of --product or --keyword.')
