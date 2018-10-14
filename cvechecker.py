@@ -1003,7 +1003,7 @@ def main():
             if entry.startswith('#') or entry.startswith('//'):
                 continue
             cve,prod,dts,reason=entry.split('|')
-            if not pobj.__contains__(cve): then
+            if not pobj.__contains__(cve): 
                 print ('%s is not in the local vulnerability store. This is either because CVEChecker has not been updated, or the CVE does not exist any more in a transient list such as cve-modified.json'%cve)
                 continue
             if pobj[cve].__contains__('lastmodifieddate'):
