@@ -6,7 +6,7 @@ import sys
 import argparse
 from collections import OrderedDict
 from hashlib import sha256
-import simplejson as json
+import json
 from numbers import Number
 import xml.etree.ElementTree as ET
 import socket
