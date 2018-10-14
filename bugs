@@ -1,3 +1,11 @@
 #Bug Number|Description|Noted in version|Status|Fixed in version
 1|If CVE lookup (-c) yields no result, it results in a KeyError|v1.14|Fixed|v1.15
 2|--exclude option not when using keyword matching.|v1.14|Fixed|v1.15
+3| While importing muted entries (before updating CVE definitions), it's possible to encounter a muting entry on an entry that's not present in the store, leading to a key-error.|Fixed|v1.17.5
+pchengi@thebeast:~/SNIC-Security/esgf_scanner/cvechecker$ python3 cvechecker.py -i exportedmutes
+Traceback (most recent call last):
+  File "cvechecker.py", line 1253, in <module>
+    main()
+  File "cvechecker.py", line 1006, in main
+    if pobj[cve].__contains__('lastmodifieddate'):
+KeyError: 'CVE-2008-2751'
