@@ -1,10 +1,12 @@
 sha256sums
-listedcves
-listedpkgs
-listedscores
 *.json
 *.xml
 *.meta
 *.gz
+*.tgz
 *.conf
 *.pyc
+*.report
+whitelist_out
+exportedmutes
+muting_log
