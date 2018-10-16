@@ -1,7 +1,8 @@
 usage: cvechecker.py [-h] [-a [AFTER_DATE]] [-b [BEFORE_DATE]] [-c [CVE]]
                      [-d [DISP_MUTE]] [--examples [EXAMPLES]]
-                     [-e EXPORT_MUTES] [-f FILE] [-i IMPORT_MUTES]
-                     [-k KEYWORD] [-l [LOG_MUTE]] [-m MUTE]
+                     [-e EXPORT_MUTES]
+                     [--eject-unsubscribed [EJECT_UNSUBSCRIBED]] [-f FILE]
+                     [-i IMPORT_MUTES] [-k KEYWORD] [-l [LOG_MUTE]] [-m MUTE]
                      [-n [NO_CONNECTION]] [-p PRODUCT] [-r [READ_CONFIG]]
                      [-s SEVERITY] [-u [UPDATE]] [-w [WHITELIST_HELPER]]
                      [-x EXCLUDE]
@@ -33,6 +34,10 @@ optional arguments:
   -e EXPORT_MUTES, --export-mutes EXPORT_MUTES
                         export muted entries to file. Requires name of file to
                         write output to.
+  --eject-unsubscribed [EJECT_UNSUBSCRIBED]
+                        remove from vulnstore entries from years other than
+                        those subscribed to. Need to use only if you remove a
+                        previously configured feed.
   -f FILE, --file FILE  read list of CVEs from supplied file.
   -i IMPORT_MUTES, --import-mutes IMPORT_MUTES
                         import muted entries from properly formatted import
