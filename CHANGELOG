@@ -1,4 +1,10 @@
 # Change list
+
+## v1.17.7
+
+- Ignore CVEs older than what has been subscribed to in nvdchannels.conf, from both cvemap.xml and CVE-Modified.json.
+- Added --eject-unsubscribed option to eject from existing vulnstore, entries which are not actually subscribed to.
+
 ## v1.17.5 
 
 - Change from simplejson to json

@@ -204,7 +204,7 @@ class Result:
                 self.resultdict[cveid]['lastmodifieddate'] = lastmodifieddate
             return
 
-    def trim_result(self, products=None, keywords=None, scores=None, cves=None, afterdate=None, beforedate=None, excludes=None, mute='none', log_mute=None):
+    def trim_result(self, products=None, keywords=None, scores=None, cves=None, afterdate=None, beforedate=None, excludes=None, mute='none', log_mute=None, vulnstore=None):
         newresultdict = dict()
         if cves != None:
             for cve in cves:
@@ -376,7 +376,7 @@ class Result:
                     newresultdict[entry]['muting_reason'] = ''
                     self.resultdict[entry]['muting_reason'] = ''
                     
-            with codecs.open('vulnstore.json','w','utf-8') as outfile:
+            with codecs.open(vulnstore,'w','utf-8') as outfile:
                 json.dump(self.resultdict,outfile)
         self.resultdict = newresultdict
 
@@ -547,14 +547,15 @@ class CVECheck:
         self.cksumfile = 'sha256sums'
         self.dontconnect = dontconnect
         self.goodbye = False
+        self.channelinfo = OrderedDict()
+        self.subscribed = list()
 
     def sig_handler(self,sig,frame):
         self.goodbye = True
         print ('bye')
         raise CustomException
 
-    def update_from_nvd(self):
-        channelinfo = OrderedDict()
+    def read_nvd_channels(self):
         try:
             with open('nvdchannels.conf','r') as inp:
                 lines = inp.readlines()
@@ -563,26 +564,29 @@ class CVECheck:
                 if line.startswith('#'):
                     continue
                 fname = line.split('|')[0]
+                if fname != 'CVE-Modified':
+                    self.subscribed.append(fname)
                 fname += '.json'
                 metafname = fname+'.meta'
                 url = line.split('|')[1]
                 metaurl = line.split('|')[2].split('\n')[0]
                 zip = fname+'.gz'
-                channelinfo[fname] = dict()
-                channelinfo[fname]['url'] = url
-                channelinfo[fname]['metafname'] = metafname
-                channelinfo[fname]['metaurl'] = metaurl
-                channelinfo[fname]['zip'] = zip
+                self.channelinfo[fname] = dict()
+                self.channelinfo[fname]['url'] = url
+                self.channelinfo[fname]['metafname'] = metafname
+                self.channelinfo[fname]['metaurl'] = metaurl
+                self.channelinfo[fname]['zip'] = zip
         except:
             print("Catastrophic error with nvdchannels.conf. Check contents for syntax. Refer to nvdchannels.conf.tmpl for help.")
             sys.exit(-1)
 
+    def update_from_nvd(self):
         cksums = dict()
         try:
             if not self.dontconnect:
-                for channel in channelinfo:
-                    urllib.request.urlretrieve(channelinfo[channel]['metaurl'],channelinfo[channel]['metafname'])
-                    with open(channelinfo[channel]['metafname'],'r') as inp:
+                for channel in self.channelinfo:
+                    urllib.request.urlretrieve(self.channelinfo[channel]['metaurl'],self.channelinfo[channel]['metafname'])
+                    with open(self.channelinfo[channel]['metafname'],'r') as inp:
                         lines = inp.readlines()
                     cksum = ''
 
@@ -593,22 +597,22 @@ class CVECheck:
 
                     if cksum == '':
                         raise
-                    channelinfo[channel]['sha256sum'] = cksum
+                    self.channelinfo[channel]['sha256sum'] = cksum
 
             #lets compare checksums
             changed = False
-            for channel in channelinfo:
+            for channel in self.channelinfo:
                 if not self.dontconnect:
                     retval,sha256sum = self.compute_checksum(channel)
-                    if sha256sum != channelinfo[channel]['sha256sum']:
-                        print("Update available for %s."%channelinfo[channel])
-                        urllib.request.urlretrieve(channelinfo[channel]['url'],channelinfo[channel]['zip'])
-                        f=gzip.GzipFile(channelinfo[channel]['zip'], 'rb')
+                    if sha256sum != self.channelinfo[channel]['sha256sum']:
+                        print("Update available for %s."%self.channelinfo[channel])
+                        urllib.request.urlretrieve(self.channelinfo[channel]['url'],self.channelinfo[channel]['zip'])
+                        f=gzip.GzipFile(self.channelinfo[channel]['zip'], 'rb')
                         fcontent = f.read()
                         f.close()
                         with open(channel,'wb') as out:
                             out.write(fcontent)
-                        os.remove(channelinfo[channel]['zip'])
+                        os.remove(self.channelinfo[channel]['zip'])
 
                 #insert into sha256sums if lines not present
                 retval = self.check_for_changes(fname=channel)
@@ -625,7 +629,7 @@ class CVECheck:
                 self.dontconnect = True
             #no metadata files. read the local nvd files
             try:
-                for channel in channelinfo:
+                for channel in self.channelinfo:
                     retval = self.check_for_changes(fname=channel)
                     if retval == -1:
                         raise
@@ -633,16 +637,16 @@ class CVECheck:
                 print("NVD json files not found. Execute cvechecker.py -u and retry.")
                 raise
             #this is the unupdated case. Local nvd files are available for reading
-            return(False,channelinfo)
+            return(False)
         #this is the potentially updated case. Local nvd files are available for reading
         if changed == True:
-            return(True,channelinfo)
+            return(True)
         else:
-            return(False,channelinfo)
+            return(False)
 
-    def read_nvd_files(self,channelinfo,retval):
+    def read_nvd_files(self,retval):
         try:
-            with open('vulnstore.json','r') as inp:
+            with open(self.vulnstore,'r') as inp:
                 pass
         except:
             print('No vuln store file found. Initializing from whatever we have.')
@@ -658,7 +662,7 @@ class CVECheck:
         datex = 0
         refexp = 0
         
-        for channel in channelinfo:
+        for channel in self.channelinfo:
             pobj = dict()
             retval,pobj = self.read_store(channel,pobj)
             for cveitem in pobj['CVE_Items']:
@@ -677,6 +681,10 @@ class CVECheck:
                 inputs['lastmodifieddate'] = None
                 try:
                     inputs['cveid'] = cveitem['cve']['CVE_data_meta']['ID']
+                    cvecomp = inputs['cveid'].split('-')
+                    cveyear = '%s-%s'%(cvecomp[0],cvecomp[1])
+                    if not self.subscribed.__contains__(cveyear): # we don't need this
+                        continue
                 except:
                     idxcount += 1
                 try:
@@ -781,6 +789,10 @@ class CVECheck:
         vulndict = OrderedDict()
         for child in root:
             cveid = child.attrib['name']
+            cvecomp = cveid.split('-')
+            cveyear = '%s-%s'%(cvecomp[0],cvecomp[1])
+            if not self.subscribed.__contains__(cveyear): # we don't need this
+                continue
             vulndict[cveid] = OrderedDict()
             for field in child:
                 if field.tag not in ['UpstreamFix','Mitigation','PublicDate','CVSS3','Bugzilla','ThreatSeverity','Details','PackageState','AffectedRelease']:
@@ -907,7 +919,23 @@ class CVECheck:
                     outfile.write("%s %s\n"%(cksums[file],file))
                 return(1)
 
+    def eject_unsubscribed(self):
+        pobj = dict()
+        self.read_nvd_channels()
+        retval,pobj = self.read_store(self.vulnstore,pobj)
+        ejectlist = list()
+        for cve in pobj:
+            cvecomp = cve.split('-')
+            cveyear = '%s-%s'%(cvecomp[0],cvecomp[1])
+            if not self.subscribed.__contains__(cveyear): # we don't need this
+                ejectlist.append(cve)
+        for cve in ejectlist:
+            pobj.pop(cve)
+            print('Ejected %s from vulnstore.'%cve)
+        self.write_store(self.vulnstore,pobj)
+    
     def update_store(self):
+        self.read_nvd_channels()
         #first read in the vulnstore, so we don't accidentally forget what we've seen or muted
         retval,self.resObj.resultdict = self.read_store(self.vulnstore,self.resObj.resultdict)
         #next we check for updates from RedHat
@@ -918,12 +946,12 @@ class CVECheck:
             if self.dontconnect == True:
                 self.read_redhat_files(cvexml)
         #lastly, updates from NVD
-        retval,channelinfo = self.update_from_nvd()
+        retval = self.update_from_nvd()
         if retval == True:
-            self.read_nvd_files(channelinfo,retval)
+            self.read_nvd_files(retval)
         else:
             if self.dontconnect == True:
-                self.read_nvd_files(channelinfo,True)
+                self.read_nvd_files(True)
 
     def read_store(self,jsonfile,jsonobj):
         try:
@@ -946,6 +974,7 @@ def main():
     aparser.add_argument("-d", "--disp-mute", type=str, nargs='?',default='none',help='display muted entries. --cve or --product filters may be used in conjuction with -d.')
     aparser.add_argument("--examples", type=str, nargs='?',default='none',help='display usage examples.')
     aparser.add_argument("-e", "--export-mutes", type=str, default='none',help='export muted entries to file. Requires name of file to write output to.')
+    aparser.add_argument("--eject-unsubscribed", type=str, nargs='?', default='none',help='remove from vulnstore entries from years other than those subscribed to. Need to use only if you remove a previously configured feed.')
     aparser.add_argument("-f", "--file", type=str, default='none',help='read list of CVEs from supplied file.')
     aparser.add_argument("-i", "--import-mutes", type=str, default='none',help='import muted entries from properly formatted import file (use --export-mutes to create a compliant file). Requires name of file to import the muted entry list from.')
     aparser.add_argument("-k", "--keyword", type=str, default='none',help='filter results by specified keyword/comma-separated list of keywords in CVE description text from NVD. Can be combined with -p, to get a union set.') #lookup by keyword e.g. Intel
@@ -961,6 +990,7 @@ def main():
     args = aparser.parse_args()
     cve = args.cve
     cvefile = args.file
+    ejectunsub = args.eject_unsubscribed
     noconnect = args.no_connection
     log_mute = args.log_mute
     severity = args.severity
@@ -992,11 +1022,20 @@ def main():
     else:
         cveobj = CVECheck()
     signal.signal(signal.SIGINT, cveobj.sig_handler)
+
+    if update != 'none':
+        cveobj.update_store()
+        sys.exit(0)
+
+    if ejectunsub != 'none':
+        cveobj.eject_unsubscribed()
+        sys.exit(0)
+
     if importmutes != 'none':
         with open(importmutes,'r') as inp:
             lines=inp.readlines()
         pobj=dict()
-        retval,pobj=cveobj.read_store('vulnstore.json',pobj)
+        retval,pobj=cveobj.read_store(cveobj.vulnstore,pobj)
         changed = False
         for line in lines:
             entry=line.split('\n')[0]
@@ -1018,16 +1057,18 @@ def main():
             pobj[cve]['muting_product'] = prod
             pobj[cve]['muting_reason'] = reason
         if changed:
-            cveobj.write_store('vulnstore.json',pobj)
+            cveobj.write_store(cveobj.vulnstore,pobj)
         sys.exit(0)
+
     if exportmutes != 'none':
         with open(exportmutes,'w') as out:
             pobj=dict()
-            retval,pobj=cveobj.read_store('vulnstore.json',pobj)
+            retval,pobj=cveobj.read_store(cveobj.vulnstore,pobj)
             for cve,vals in pobj.items():
                 if vals['mute'] == 'on':
                     out.write("%s|%s|%s|%s\n"%(cve,vals['muting_product'],vals['muteddate'],vals['muting_reason']))
             sys.exit(0)
+
     if examples != 'none':
         print('./cvechecker.py: Simply displays the help.')
         print('./cvechecker.py -p http_server,tivoli,slurm,postgres,general_parallel_file_system,irods,torque_resource_manager,struts,java: Display CVEs against these products.')
@@ -1037,6 +1078,7 @@ def main():
         print('./cvechecker.py -d: Display CVEs that have been muted, and packages that it affects.')
         print('./cvechecker.py -k Intel,InfiniBand,AMD: Display CVEs with descriptions containing these keywords. Case-sensitive, to avoid too many false positives.')
         sys.exit(0)
+
     if afterdate != 'none':
         try:
             dtcheck = datetime.datetime.strptime(afterdate,'%Y-%m-%d')
@@ -1169,6 +1211,7 @@ def main():
             products = 'none'
         if keywords != 'none' and cve != 'none':
             keywords = 'none'
+        argsdict['vulnstore'] = cveobj.vulnstore
         argsdict['mute'] = mute
         if log_mute != 'none' and mute == 'on':
             argsdict['log_mute'] = dict()
@@ -1188,10 +1231,6 @@ def main():
         if products == 'none' and keywords == 'none':
             print('Interactive whitelisting requires the use of --product or --keyword.')
             sys.exit(-1)
-            
-    if update != 'none':
-        cveobj.update_store()
-        sys.exit(0)
 
     if cve != 'none':
         if cve == None:
