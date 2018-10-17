@@ -203,7 +203,14 @@ class Result:
             if lastmodifieddate != None:
                 self.resultdict[cveid]['lastmodifieddate'] = lastmodifieddate
             return
-
+    def check_pinned(self, cve=None):
+        try:
+            with open ('pinned_cves','r') as inp:
+                pinnedcves = inp.readline()
+                pinnedcvelist = (pinnedcves.split('\n')[0]).split(,)
+        except:
+            return False
+        if cves == None:
     def trim_result(self, products=None, keywords=None, scores=None, cves=None, afterdate=None, beforedate=None, excludes=None, mute='none', log_mute=None, vulnstore=None):
         newresultdict = dict()
         if cves != None:
