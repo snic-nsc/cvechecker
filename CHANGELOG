@@ -1,5 +1,10 @@
 # Change list
 
+## Untagged
+
+- Allow interactive whitelisting (-w) option along with --cve.
+- Allow muting with -l option to override previously muted entry, but not batch muting. This is to allow changing of reason for muting, product name etc. 
+
 ## v1.17.7
 
 - Ignore CVEs older than what has been subscribed to in nvdchannels.conf, from both cvemap.xml and CVE-Modified.json.

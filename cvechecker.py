@@ -346,7 +346,7 @@ class Result:
             dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
             for entry in newresultdict:
                 if mute == 'on':
-                    if newresultdict[entry]['mute'] == 'on': #it has already been muted in the past. No need to destroy the record of the old muting or alter it
+                    if newresultdict[entry]['mute'] == 'on' and log_mute == None: #it has already been muted in the past. No need to destroy the record of the old muting or alter it, as this is a batch mute.
                         continue
                     newresultdict[entry]['mute'] = 'on'
                     self.resultdict[entry]['mute'] = 'on'
@@ -1225,11 +1225,8 @@ def main():
             argsdict['log_mute'] = None
 
     if whitelist != 'none':
-        if cve != 'none':
-            print('Cannot specify -c and --whitelist flags simultaneously.')
-            sys.exit(-1)
-        if products == 'none' and keywords == 'none':
-            print('Interactive whitelisting requires the use of --product or --keyword.')
+        if products == 'none' and keywords == 'none' and cve == 'none':
+            print('Interactive whitelisting requires the use of --product, --keyword, or --cve.')
             sys.exit(-1)
 
     if cve != 'none':
