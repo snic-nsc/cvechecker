@@ -62,6 +62,8 @@ class Result:
                     update = True
                 if update:
                     self.resultdict[cveid]['muteddate'] = ''
+                    self.resultdict[cveid]['muting_reason'] = ''
+                    self.resultdict[cveid]['muting_product'] = ''
                     self.resultdict[cveid]['mute'] = 'off'
                     self.resultdict[cveid]['status'] = 'Update'
 
@@ -192,6 +194,8 @@ class Result:
                 self.resultdict[cveid]['url'] = cveurl
             self.resultdict[cveid]['mute'] = 'off'
             self.resultdict[cveid]['muteddate'] = ''
+            self.resultdict[cveid]['muting_reason'] = ''
+            self.resultdict[cveid]['muting_product'] = ''
             if affectedproducts != None:
                 self.resultdict[cveid]['affectedproducts'] = affectedproducts
             if nvddescriptions != None:
@@ -204,13 +208,32 @@ class Result:
                 self.resultdict[cveid]['lastmodifieddate'] = lastmodifieddate
             return
     def check_pinned(self, cve=None):
+        changed = False
         try:
             with open ('pinned_cves','r') as inp:
-                pinnedcves = inp.readline()
-                pinnedcvelist = (pinnedcves.split('\n')[0]).split(,)
+                pinnedcves = inp.readlines()
+                pinnedcvelist = list()
+                for pinnedcve in pinnedcves:
+                    if not pinnedcvelist.__contains__(pinnedcve.split('\n')[0]):
+                        pinnedcvelist.append(pinnedcve.split('\n')[0])
         except:
             return False
-        if cves == None:
+        if cve == None:
+            for pinnedcve in pinnedcvelist:
+                if not self.resultdict.__contains__(pinnedcve):
+                    print ('%s does not exist in the vulnerability store; update CVEChecker or remove the entry from the pinned_cves file.'%pinnedcve)
+                    continue
+                if self.resultdict[pinnedcve]['mute'] == 'on':
+                    self.writeback = True
+                    changed = True
+                    self.resultdict[pinnedcve]['mute'] = 'off'
+                    self.resultdict[pinnedcve]['muteddate'] = ''
+                    self.resultdict[pinnedcve]['muting_reason'] = ''
+                    self.resultdict[pinnedcve]['muting_product'] = ''
+            return changed
+        if pinnedcvelist.__contains__(cve):
+            return True
+                
     def trim_result(self, products=None, keywords=None, scores=None, cves=None, afterdate=None, beforedate=None, excludes=None, mute='none', log_mute=None, vulnstore=None):
         newresultdict = dict()
         if cves != None:
@@ -352,6 +375,10 @@ class Result:
             dtobj = datetime.datetime.utcnow()
             dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
             for entry in newresultdict:
+                retval = self.check_pinned(entry)
+                if retval:
+                    print('Will not mute %s as it figures in the pinned_cves file.'%entry)
+                    continue
                 if mute == 'on':
                     if newresultdict[entry]['mute'] == 'on' and log_mute == None: #it has already been muted in the past. No need to destroy the record of the old muting or alter it, as this is a batch mute.
                         continue
@@ -554,6 +581,7 @@ class CVECheck:
         self.cksumfile = 'sha256sums'
         self.dontconnect = dontconnect
         self.goodbye = False
+        self.writeback = False
         self.channelinfo = OrderedDict()
         self.subscribed = list()
 
@@ -743,7 +771,7 @@ class CVECheck:
         #print 'datex is %s'%(str(datex))
         #print 'descx is %s'%(str(descx))
         print(len(self.resObj.resultdict))
-        self.write_store(self.vulnstore,self.resObj.resultdict)
+        self.writeback = True
                 
     def update_from_redhat(self,url):
             url = self.sources['redhat']
@@ -862,11 +890,7 @@ class CVECheck:
             inputs['lastmodifieddate'] = None
             self.resObj.add_result(**inputs)
 
-        try:
-            self.write_store(self.vulnstore,self.resObj.resultdict)
-        except:
-            print('Fatal error writing output into local vuln store file.')
-            sys.exit(-1)
+        self.writeback = True
         return
     
     def compute_checksum(self,fname):
@@ -959,6 +983,9 @@ class CVECheck:
         else:
             if self.dontconnect == True:
                 self.read_nvd_files(True)
+        self.resObj.check_pinned()
+        if self.writeback:
+            self.write_store(self.vulnstore,self.resObj.resultdict)
 
     def read_store(self,jsonfile,jsonobj):
         try:
@@ -1051,6 +1078,10 @@ def main():
             cve,prod,dts,reason=entry.split('|')
             if not pobj.__contains__(cve): 
                 print ('%s is not in the local vulnerability store. This is either because CVEChecker has not been updated, or the CVE does not exist any more in a transient list such as cve-modified.json.'%cve)
+                continue
+            retval = cveobj.resObj.check_pinned(cve)
+            if retval:
+                print('Will not mute %s as it figures in the pinned_cves file.'%cve)
                 continue
             if pobj[cve].__contains__('lastmodifieddate'):
                 muteddobj = datetime.datetime.strptime(dts,'%Y-%m-%d %H:%M')

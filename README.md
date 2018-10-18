@@ -1,6 +1,6 @@
 # What is `CVEChecker` ?
 
-- `CVEChecker` is a tool that aggregates CVE information from Redhat and the [NVD data feeds](https://nvd.nist.gov/vuln/data-feeds), to setup a local vulnerability store that can be queried offline.
+- `CVEChecker` is a tool that aggregates CVE information from Redhat and the [NVD vulnerability data feeds](https://nvd.nist.gov/vuln/data-feeds), to setup a local vulnerability store that can be queried offline.
 - Vulnerabilities can be looked up on the basis of user-specified parameters such as a product name, keywords in the vulnerability description, or the CVEid itself.
 - Filters such as `--afterdate`, `--beforedate`, `--severity`, `--exclude` can be used alongside other search-parameters to sharpen search results, and/or reduce noise.
 - CVEs can be whitelisted or muted after analysis, to prevent it from popping up every time; however, if there's been any change to the CVE itself (change in severity score, addition of reference links, or modification in CPE lists), muted CVEs are automatically unmuted, so you get to know if there's any change in the status, or if you need to do anything more.
@@ -110,6 +110,11 @@ CVE-2011-1772|Apache Struts|2018-10-02 09:46|CVEs against older versions of Stru
 CVE-2011-2087|Apache Struts|2018-10-02 09:46|CVEs against older versions of Struts.
 CVE-2017-7546|postgresql|2018-10-02 09:28|Issue fixed in postgresql-8.4.20-8.el6_9 released in October 2017
 ````
+## Pinning CVEs
+
+- In some cases, it might be useful to pin certain CVEs such that they cannot be muted, either while importing muted entries, or while automatically or manually muting entries.
+- Simply place CVEs that you want to pin, one entry per line, in a file called 'pinned_cves' in the same directory as cvechecker.py, and those entries will not get muted.
+
 ## Description of filters and the output
 
 - Not all options output information onto standard out; `-m` option, when used without `-l` option, is silent. 

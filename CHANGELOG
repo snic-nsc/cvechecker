@@ -1,7 +1,8 @@
 # Change list
 
-## Untagged
+## v1.17.8
 
+- Allow to pin CVES using a 'pinned_cves' file, with one CVE per entry; pinned CVEs cannot be muted, and if already muted, will be unmuted on next update.
 - Allow interactive whitelisting (-w) option along with --cve.
 - Allow muting with -l option to override previously muted entry, but not batch muting. This is to allow changing of reason for muting, product name etc. 
 
