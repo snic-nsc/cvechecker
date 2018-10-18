@@ -10,3 +10,4 @@ sha256sums
 whitelist_out
 exportedmutes
 muting_log
+pinned_cves
