@@ -375,10 +375,11 @@ class Result:
             dtobj = datetime.datetime.utcnow()
             dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
             for entry in newresultdict:
-                retval = self.check_pinned(entry)
-                if retval:
-                    print('Will not mute %s as it figures in the pinned_cves file.'%entry)
-                    continue
+                if mute == 'on':
+                    retval = self.check_pinned(entry)
+                    if retval:
+                        print('Will not mute %s as it figures in the pinned_cves file.'%entry)
+                        continue
                 if mute == 'on':
                     if newresultdict[entry]['mute'] == 'on' and log_mute == None: #it has already been muted in the past. No need to destroy the record of the old muting or alter it, as this is a batch mute.
                         continue
@@ -1242,8 +1243,8 @@ def main():
         if mute != 'on' and mute != 'off':
             print('Value for mute flag can only be "off" or "on".')
             sys.exit(-1)
-        if products == 'none' and cve == 'none' and keywords == 'none':
-            print('Mute flag requires the use of the --product, --keyword, or the --cve filter. If --cve is specified with other filters, the other filters are ignored.')
+        if products == 'none' and cve == 'none' and keywords == 'none' and disp_mute == 'none':
+            print('Mute flag requires the use of the --product, --keyword, --disp-mute or the --cve filter. If --cve is specified with other filters, the other filters are ignored.')
             sys.exit(-1)
         if products != 'none' and cve != 'none':
             products = 'none'

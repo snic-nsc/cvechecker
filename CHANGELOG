@@ -1,5 +1,10 @@
 # Change list
 
+## v1.17.9
+
+- Allow to unmute all muted entries, by allowing use of --disp-mute and --mute flags together.
+- Check for pinned_mute file entries only for mute, import, and update operations, and not unmute.
+
 ## v1.17.8
 
 - Allow to pin CVES using a 'pinned_cves' file, with one CVE per entry; pinned CVEs cannot be muted, and if already muted, will be unmuted on next update.
