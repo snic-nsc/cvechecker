@@ -315,10 +315,11 @@ class Result:
                 found = False
                 if keywords != None:
                     for keyword in keywords:
-                        keyword += ' '
+                        kps = keyword + ' '
+                        kpc = keyword + ','
                         if len(val['nvddescriptions']) > 0:
                             for desc in val['nvddescriptions']:
-                                if desc.find(keyword) != -1:
+                                if desc.find(kpc) != -1 or desc.find(kps) != -1:
                                     found = True
                                     val['matchedon'] = keyword
                                     val['matchtype'] = 'keyword'
