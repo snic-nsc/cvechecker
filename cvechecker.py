@@ -256,7 +256,7 @@ class Result:
                 if excludes != None:
                     for vendor,proddict in val['affectedproducts'].items():
                         for prodname in proddict:
-                            if excludes.__contains__(prodname):
+                            if excludes.__contains__(prodname.lower()):
                                 excluded = True
                                 break
                         if excluded == True:
@@ -266,7 +266,7 @@ class Result:
                             if len(val['redhat_info']['PackageState']) >0:
                                 for match in val['redhat_info']['PackageState']:
                                     if match.__contains__('PackageName'):
-                                        if excludes.__contains__(match['PackageName']):
+                                        if excludes.__contains__(match['PackageName'].lower()):
                                             excluded = True
                                             break
                     if not excluded:
@@ -274,7 +274,7 @@ class Result:
                             if len(val['redhat_info']['AffectedRelease']) >0:
                                 for match in val['redhat_info']['AffectedRelease']:
                                     if match.__contains__('Package'):
-                                        if excludes.__contains__(match['Package']):
+                                        if excludes.__contains__(match['Package'].lower()):
                                             excluded = True
                                             break
                 if excluded == True:
@@ -335,7 +335,7 @@ class Result:
                     for product in products:
                         for vendor,proddict in val['affectedproducts'].items():
                             for prodname, versionlist in proddict.items():
-                                if prodname.startswith(product):
+                                if (prodname.lower()).startswith(product):
                                     found = True
                                     val['matchedon'] = product
                                     val['matchtype'] = 'product'
@@ -350,7 +350,7 @@ class Result:
                                 if len(val['redhat_info']['PackageState']) >0:
                                     for match in val['redhat_info']['PackageState']:
                                         if match.__contains__('PackageName'):
-                                            if match['PackageName'].startswith(product):
+                                            if (match['PackageName'].lower()).startswith(product):
                                                 found = True
                                                 val['matchedon'] = product
                                                 val['matchtype'] = 'product'
@@ -360,7 +360,7 @@ class Result:
                                         if len(val['redhat_info']['AffectedRelease']) >0:
                                             for match in val['redhat_info']['AffectedRelease']:
                                                 if match.__contains__('Package'):
-                                                    if match['Package'].startswith(product):
+                                                    if (match['Package'].lower()).startswith(product):
                                                         found = True
                                                         val['matchedon'] = product
                                                         val['matchtype'] = 'product'
@@ -1158,8 +1158,8 @@ def main():
         prods.sort()
         argsdict['products'] = list()
         for prod in prods:
-            if not argsdict['products'].__contains__(prod):
-                argsdict['products'].append(prod)
+            if not argsdict['products'].__contains__(prod.lower()):
+                argsdict['products'].append(prod.lower())
         if cve != 'none':
             print('Cannot specify -c and -p flags simultaneously.')
             sys.exit(-1)
@@ -1180,8 +1180,8 @@ def main():
         excls = exclude.split(',')
         argsdict['excludes'] = list()
         for excl in excls:
-            if not argsdict['excludes'].__contains__(excl):
-                argsdict['excludes'].append(excl)
+            if not argsdict['excludes'].__contains__(excl.lower()):
+                argsdict['excludes'].append(excl.lower())
         if cve != 'none':
             print('Cannot specify -c and -x flags simultaneously.')
             sys.exit(-1)

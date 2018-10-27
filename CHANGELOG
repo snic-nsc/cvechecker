@@ -1,6 +1,8 @@
 # Change list
 
-## Untagged changes
+## v1.17.10
+
+- Case-insensitive product and exclude matches, to avoid missing out hits on products with capitalized or non-lower case characters.
 
 - Modify keyword search logic to also look for a comma immediately following a search expression. Earlier, the match was looking for a space compulsorily. Now, it matches both a space, and a comma. 
 
