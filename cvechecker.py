@@ -1208,8 +1208,8 @@ def main():
                         pkgs.sort()
                         argsdict['products']=list()
                         for pkg in pkgs:
-                            if not argsdict['products'].__contains__(pkg):
-                                argsdict['products'].append(pkg)
+                            if not argsdict['products'].__contains__(pkg.lower()):
+                                argsdict['products'].append(pkg.lower())
                 if line.startswith('keywords='):
                     kwds=line.split('\n')[0].split('=')[1].split(',')
                     if len(kwds) != 0 and kwds != ['']:
@@ -1234,8 +1234,8 @@ def main():
                         excls.sort()
                         argsdict['excludes']=list()
                         for excl in excls:
-                            if not argsdict['excludes'].__contains__(excl):
-                                argsdict['excludes'].append(excl)
+                            if not argsdict['excludes'].__contains__(excl.lower()):
+                                argsdict['excludes'].append(excl.lower())
         except:
             print('Config file %s not present or contents unreadable.'%cveobj.conffile)
             sys.exit(-1)
