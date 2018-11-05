@@ -460,7 +460,7 @@ class Result:
                 print("First seen date: %s"%val['insertiondate'])
             if val.__contains__('lastmodifieddate'):
                 print("Last Modification date: %s"%val['lastmodifieddate'])
-            if val['status'] == 'Update' or val['status'] == 'R-Update' or val['status'] = 'S-Update':
+            if val['status'] == 'Update' or val['status'] == 'R-Update' or val['status'] == 'S-Update':
                 print("\nChangelog")
                 print("----------")
                 print("")
