@@ -9,3 +9,8 @@ Traceback (most recent call last):
   File "cvechecker.py", line 1006, in main
     if pobj[cve].__contains__('lastmodifieddate'):
 KeyError: 'CVE-2008-2751'
+4| Typo introduced in v1.17.11|Fixed|v1.17.12
+python3 cvechecker.py
+  File "cvechecker.py", line 463
+    if val['status'] == 'Update' or val['status'] == 'R-Update' or val['status'] = 'S-Update':
+
