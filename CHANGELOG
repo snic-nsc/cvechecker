@@ -1,5 +1,10 @@
 # Change list
 
+## v1.17.11
+
+- apply case-insensitive product and exclude matching logic, even while reading in from configuration file
+- Mark updates as 'S-Update' if the only update is a score assignment/score change.
+
 ## v1.17.10
 
 - Case-insensitive product and exclude matches, to avoid missing out hits on products with capitalized or non-lower case characters.

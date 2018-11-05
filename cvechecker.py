@@ -126,6 +126,8 @@ class Result:
                         changelog['other'] = True
                     if changelog['score'] == False and changelog['nvddescriptions'] == False and changelog['nvdrefs'] == True:
                         self.resultdict[cveid]['status'] = 'R-Update'
+                    if changelog['score'] == True and changelog['nvddescriptions'] == False and changelog['nvdrefs'] == False:
+                        self.resultdict[cveid]['status'] = 'S-Update'
                     histitem['changelog']=changelog
                     if not self.resultdict[cveid].__contains__('history'):
                         self.resultdict[cveid]['history'] = list()
@@ -458,7 +460,7 @@ class Result:
                 print("First seen date: %s"%val['insertiondate'])
             if val.__contains__('lastmodifieddate'):
                 print("Last Modification date: %s"%val['lastmodifieddate'])
-            if val['status'] == 'Update' or val['status'] == 'R-Update':
+            if val['status'] == 'Update' or val['status'] == 'R-Update' or val['status'] = 'S-Update':
                 print("\nChangelog")
                 print("----------")
                 print("")
