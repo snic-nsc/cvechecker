@@ -38,6 +38,8 @@ class CVE:
 class Result:
     def __init__(self):
         self.resultdict = dict()
+        self.ignorerupdates = False
+        self.ignoresupdates = False
         self.sentinel = 0
         self.scoredefs = OrderedDict()
         self.scoredefs['None'] = {'high':0.0, 'low':0.0}
@@ -61,10 +63,6 @@ class Result:
                 else: #
                     update = True
                 if update:
-                    self.resultdict[cveid]['muteddate'] = ''
-                    self.resultdict[cveid]['muting_reason'] = ''
-                    self.resultdict[cveid]['muting_product'] = ''
-                    self.resultdict[cveid]['mute'] = 'off'
                     self.resultdict[cveid]['status'] = 'Update'
 
                     #now to identify and note what's changed
@@ -167,6 +165,17 @@ class Result:
                             if not self.resultdict[cveid]['affectedproducts'][vendor][prodname].__contains__(version):
                                 self.resultdict[cveid]['affectedproducts'][vendor][prodname].append(version)
                                 continue
+            
+            if self.resultdict[cveid]['status'] == 'S-Update' and self.ignoresupdates == True:
+                return
+            if self.resultdict[cveid]['status'] == 'R-Update' and self.ignorerupdates == True:
+                return
+
+            if self.resultdict[cveid]['status'] == 'Update' or self.resultdict[cveid]['status'] == 'R-Update' or self.resultdict[cveid]['status'] == 'S-Update':
+                self.resultdict[cveid]['muteddate'] = ''
+                self.resultdict[cveid]['muting_reason'] = ''
+                self.resultdict[cveid]['muting_product'] = ''
+                self.resultdict[cveid]['mute'] = 'off'
 
         else:
             self.resultdict[cveid] = OrderedDict()
@@ -299,7 +308,7 @@ class Result:
                                 continue
 
                 if afterdate != None:
-                    #first check for last-modified date. If absent, look for redhat affectedrelease; if that too isn't available, don't drop result.
+                    #first check for last-modified date. If absent, look for redhat affectedrelease; if that too isn't available, check insertion date. If insertion date is before the specified after-date, drop the result, else, don't drop.
                     if val.__contains__('lastmodifieddate'):
                         dtobj = datetime.datetime.strptime(val['lastmodifieddate'],'%Y-%m-%d %H:%M')
                         if not dtobj > afterdate:
@@ -311,9 +320,13 @@ class Result:
                                 dtobj = datetime.datetime.strptime(item['ReleaseDate'],'%Y-%m-%dT%H:%M:%S')
                                 if dtobj > afterdate:
                                     found=True
+                                    break
                             if found == False:
                                 continue
-
+                        #check insertion time; if insertion time is before the 'after-date', drop it.
+                        dtobj = datetime.datetime.strptime(val['insertiondate'],'%Y-%m-%d %H:%M')
+                        if dtobj < afterdate:
+                            continue
                 found = False
                 if keywords != None:
                     for keyword in keywords:
@@ -1015,6 +1028,8 @@ def main():
     aparser.add_argument("--eject-unsubscribed", type=str, nargs='?', default='none',help='remove from vulnstore entries from years other than those subscribed to. Need to use only if you remove a previously configured feed.')
     aparser.add_argument("-f", "--file", type=str, default='none',help='read list of CVEs from supplied file.')
     aparser.add_argument("-i", "--import-mutes", type=str, default='none',help='import muted entries from properly formatted import file (use --export-mutes to create a compliant file). Requires name of file to import the muted entry list from.')
+    aparser.add_argument("--ignore-supdates", type=str, nargs='?',default='none',help='do not unmute if the only update is a score assignment or change.')
+    aparser.add_argument("--ignore-rupdates", type=str, nargs='?',default='none',help='do not unmute if the only update is an added reference link.')
     aparser.add_argument("-k", "--keyword", type=str, default='none',help='filter results by specified keyword/comma-separated list of keywords in CVE description text from NVD. Can be combined with -p, to get a union set.') #lookup by keyword e.g. Intel
     aparser.add_argument("-l", "--log-mute", type=str, nargs='?',default='none',help='log a custom message upon muting. Can specify log file as an optional argument.')
     aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one of --product or --cve options') #mark results as seen or unseen
@@ -1028,6 +1043,8 @@ def main():
     args = aparser.parse_args()
     cve = args.cve
     cvefile = args.file
+    ignoresupdates = args.ignore_supdates
+    ignorerupdates = args.ignore_rupdates
     ejectunsub = args.eject_unsubscribed
     noconnect = args.no_connection
     log_mute = args.log_mute
@@ -1062,6 +1079,10 @@ def main():
     signal.signal(signal.SIGINT, cveobj.sig_handler)
 
     if update != 'none':
+        if ignoresupdates != 'none':
+            cveobj.resObj.ignoresupdates = True
+        if ignorerupdates != 'none':
+            cveobj.resObj.ignorerupdates = True
         cveobj.update_store()
         sys.exit(0)
 
@@ -1086,6 +1107,9 @@ def main():
             retval = cveobj.resObj.check_pinned(cve)
             if retval:
                 print('Will not mute %s as it figures in the pinned_cves file.'%cve)
+                continue
+            if pobj[cve]['mute'] == 'on':
+                # this entry is already muted, so won't try to mute it again.
                 continue
             if pobj[cve].__contains__('lastmodifieddate'):
                 muteddobj = datetime.datetime.strptime(dts,'%Y-%m-%d %H:%M')

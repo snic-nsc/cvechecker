@@ -1,5 +1,10 @@
 # Change list
 
+## v1.17.13
+
+- Add option to ignore S-Update and R-Update (they won't unmute muted entries, if used).
+- Add runtests.sh to run some minimal tests of functionalities (to be run after firstrun.sh on a new installation). 
+
 ## v1.17.12
 
 - Bug fix for typo introduced in previous commit
