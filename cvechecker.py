@@ -54,6 +54,13 @@ class Result:
         dtobj = datetime.datetime.utcnow()
         dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
         if self.resultdict.__contains__(cveid):
+            histitem = dict()
+            changelog = dict()
+            changelog['score'] = False
+            changelog['nvddescriptions'] = False
+            changelog['nvdrefs'] = False
+            changelog['nvdaffectedproducts'] = False
+            changelog['other'] = False
             if lastmodifieddate != None:
                 lmtdobj = datetime.datetime.strptime(lastmodifieddate,'%Y-%m-%d %H:%M')
                 if self.resultdict[cveid].__contains__('lastmodifieddate') and self.resultdict[cveid]['lastmodifieddate'] != None: # we might have an update
@@ -67,18 +74,12 @@ class Result:
 
                     #now to identify and note what's changed
 
-                    changelog = dict()
-                    histitem = dict()
                     histitem['histitementrydate'] = dtstr
                     if self.resultdict[cveid].__contains__('lastmodifieddate') and self.resultdict[cveid]['lastmodifieddate'] != None: # we might have an update
                         histitem['lastmodifieddate'] = self.resultdict[cveid]['lastmodifieddate']
                     else:
                         histitem['lastmodifieddate'] = 'not available'
                     self.resultdict[cveid]['lastmodifieddate']=lastmodifieddate
-                    changelog['score'] = False
-                    changelog['nvddescriptions'] = False
-                    changelog['nvdrefs'] = False
-                    changelog['other'] = False
                     if cvescore != 11:
                         if self.resultdict[cveid]['score'] != cvescore:
                             changelog['score'] = True
@@ -120,16 +121,6 @@ class Result:
                                         changelog['nvdrefs'] = True
                                         histitem['nvdrefs'] = self.resultdict[cveid]['nvdrefs']
                                         break
-                    if changelog['score'] == False and changelog['nvddescriptions'] == False and changelog['nvdrefs'] == False:
-                        changelog['other'] = True
-                    if changelog['score'] == False and changelog['nvddescriptions'] == False and changelog['nvdrefs'] == True:
-                        self.resultdict[cveid]['status'] = 'R-Update'
-                    if changelog['score'] == True and changelog['nvddescriptions'] == False and changelog['nvdrefs'] == False:
-                        self.resultdict[cveid]['status'] = 'S-Update'
-                    histitem['changelog']=changelog
-                    if not self.resultdict[cveid].__contains__('history'):
-                        self.resultdict[cveid]['history'] = list()
-                    self.resultdict[cveid]['history'].append(histitem)
 
             if redhat_info != None:
                 self.resultdict[cveid]['redhat_info'] = redhat_info
@@ -156,15 +147,29 @@ class Result:
                 for vendor,proddict in affectedproducts.items():
                     if not self.resultdict[cveid]['affectedproducts'].__contains__(vendor):
                         self.resultdict[cveid]['affectedproducts'][vendor] = proddict
+                        changelog['nvdaffectedproducts'] = True
                         continue
                     for prodname,versionlist in proddict.items():
                         if not self.resultdict[cveid]['affectedproducts'][vendor].__contains__(prodname):
                             self.resultdict[cveid]['affectedproducts'][vendor][prodname] = versionlist
+                            changelog['nvdaffectedproducts'] = True
                             continue
                         for version in versionlist:
                             if not self.resultdict[cveid]['affectedproducts'][vendor][prodname].__contains__(version):
                                 self.resultdict[cveid]['affectedproducts'][vendor][prodname].append(version)
+                                changelog['nvdaffectedproducts'] = True
                                 continue
+
+            if changelog['score'] == False and changelog['nvddescriptions'] == False and changelog['nvdrefs'] == False and changelog['nvdaffectedproducts'] == False:
+                changelog['other'] = True
+            if changelog['score'] == False and changelog['nvddescriptions'] == False and changelog['nvdaffectedproducts'] == False and changelog['nvdrefs'] == True:
+                self.resultdict[cveid]['status'] = 'R-Update'
+            if changelog['score'] == True and changelog['nvddescriptions'] == False and changelog['nvdrefs'] == False and changelog['nvdaffectedproducts'] == False:
+                self.resultdict[cveid]['status'] = 'S-Update'
+            histitem['changelog']=changelog
+            if not self.resultdict[cveid].__contains__('history'):
+                self.resultdict[cveid]['history'] = list()
+            self.resultdict[cveid]['history'].append(histitem)
             
             if self.resultdict[cveid]['status'] == 'S-Update' and self.ignoresupdates == True:
                 return
@@ -491,6 +496,8 @@ class Result:
                     diff=difflib.unified_diff(val['history'][lastitem]['nvddescriptions'],val['nvddescriptions'],lineterm='')
                     print('\n'.join(diff))
                     print('\n')
+                if changelog['nvdaffectedproducts'] == True:
+                    print("NVD's Affected Products list has been modified.\n")
                 if changelog['other'] == True:
                     print("Information other than what is tracked by cvechecker, has been modified, e.g addition of CWE.")
                     print("Check for updates here: https://nvd.nist.gov/vuln/detail/%s#VulnChangeHistorySection"%(key))
