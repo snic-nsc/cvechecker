@@ -1,5 +1,9 @@
 #!/bin/bash
 
+noupdate=0
+if [ "$1" != "" ]; then
+    noupdate=1;
+fi
 _exit(){
     option=$1
     message=$2
@@ -11,9 +15,11 @@ python3 cvechecker.py >/dev/null 2>&1
 if [ $? -ne 0 ]; then _exit "-h" "Check code/environment"; fi
 echo "Ran successfully without any options.";
 
-python3 cvechecker.py -u >/dev/null 2>&1
-if [ $? -ne 0 ]; then _exit "--update" "Check network connectivity."; fi
-echo "Updated successfully.";
+if [ $noupdate -eq 0 ]; then
+   python3 cvechecker.py -u >/dev/null 2>&1
+   if [ $? -ne 0 ]; then _exit "--update" "Check network connectivity."; fi
+   echo "Updated successfully.";
+fi
 
 python3 cvechecker.py -e exportedmutes_org
 if [ $? -ne 0 ]; then 

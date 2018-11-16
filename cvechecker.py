@@ -1119,6 +1119,7 @@ def main():
                     continue
             changed = True
             pobj[cve]['mute'] = 'on'
+            pobj[cve]['status'] = 'Seen'
             pobj[cve]['muteddate'] = dts
             pobj[cve]['muting_product'] = prod
             pobj[cve]['muting_reason'] = reason
