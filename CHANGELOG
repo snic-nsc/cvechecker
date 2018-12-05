@@ -4,6 +4,8 @@
 
 - make updates atomic across multiple files, so order does not matter anymore; only change status to update if last update is seen, so fresh remains unchanged.
 - will not see S-Updates and R-Updates anymore, if ignore has been configured.
+- Mention changes pertaining to Redhat info in Changelog in print_result
+- Update add_additional_db_fields.py
 
 ## v1.17.13
 

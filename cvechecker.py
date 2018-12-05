@@ -517,6 +517,8 @@ class Result:
                     print('\n')
                 if changelog['nvdaffectedproducts'] == True:
                     print("NVD's Affected Products list has been modified.\n")
+                if changelog['rhupdated'] == True:
+                    print("Redhat info has been modified (AffectedPackages, Bugzilla url, description etc).\n")
                 if changelog['other'] == True:
                     print("Information other than what is tracked by cvechecker, has been modified, e.g addition of CWE.")
                     print("Check for updates here: https://nvd.nist.gov/vuln/detail/%s#VulnChangeHistorySection"%(key))
