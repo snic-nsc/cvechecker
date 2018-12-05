@@ -40,6 +40,7 @@ class Result:
         self.resultdict = dict()
         self.ignorerupdates = False
         self.ignoresupdates = False
+        self.session_dtstr = ''
         self.sentinel = 0
         self.scoredefs = OrderedDict()
         self.scoredefs['None'] = {'high':0.0, 'low':0.0}
@@ -51,16 +52,23 @@ class Result:
     
     def add_result(self, cveid, cveurl, bugzilla_desc, bugzilla_url, cvescore, affectedproducts,details, redhat_info,mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
         update = False
-        dtobj = datetime.datetime.utcnow()
-        dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
         if self.resultdict.__contains__(cveid):
-            histitem = dict()
-            changelog = dict()
-            changelog['score'] = False
-            changelog['nvddescriptions'] = False
-            changelog['nvdrefs'] = False
-            changelog['nvdaffectedproducts'] = False
-            changelog['other'] = False
+            if not self.resultdict[cveid].__contains__('history'):
+                self.resultdict[cveid]['history'] = list()
+            lastitem=len(self.resultdict[cveid]['history'])-1
+            if lastitem < 0 or (lastitem >=0 and self.resultdict[cveid]['history'][lastitem]['histitementrydate'] != self.session_dtstr):
+                histitem = dict()
+                changelog = dict()
+                changelog['score'] = False
+                changelog['nvddescriptions'] = False
+                changelog['nvdrefs'] = False
+                changelog['nvdaffectedproducts'] = False
+                changelog['other'] = False
+                changelog['rhupdated'] = False
+                histitem['changelog'] = changelog
+                histitem['histitementrydate'] = self.session_dtstr
+                self.resultdict[cveid]['history'].append(histitem)
+                lastitem=0
             if lastmodifieddate != None:
                 lmtdobj = datetime.datetime.strptime(lastmodifieddate,'%Y-%m-%d %H:%M')
                 if self.resultdict[cveid].__contains__('lastmodifieddate') and self.resultdict[cveid]['lastmodifieddate'] != None: # we might have an update
@@ -70,29 +78,29 @@ class Result:
                 else: #
                     update = True
                 if update:
-                    self.resultdict[cveid]['status'] = 'Update'
+                    if self.resultdict[cveid]['status'] == 'Seen':
+                        self.resultdict[cveid]['status'] = 'Update'
 
                     #now to identify and note what's changed
 
-                    histitem['histitementrydate'] = dtstr
                     if self.resultdict[cveid].__contains__('lastmodifieddate') and self.resultdict[cveid]['lastmodifieddate'] != None: # we might have an update
-                        histitem['lastmodifieddate'] = self.resultdict[cveid]['lastmodifieddate']
+                        self.resultdict[cveid]['history'][lastitem]['lastmodifieddate'] = self.resultdict[cveid]['lastmodifieddate']
                     else:
-                        histitem['lastmodifieddate'] = 'not available'
+                        self.resultdict[cveid]['history'][lastitem]['lastmodifieddate'] = 'not available'
                     self.resultdict[cveid]['lastmodifieddate']=lastmodifieddate
                     if cvescore != 11:
                         if self.resultdict[cveid]['score'] != cvescore:
-                            changelog['score'] = True
+                            self.resultdict[cveid]['history'][lastitem]['changelog']['score'] = True
                             if self.resultdict[cveid]['score'] == 11:
-                                histitem['score'] = 'Missing'
+                                self.resultdict[cveid]['history'][lastitem]['score'] = 'Missing'
                             else:
-                                histitem['score'] = self.resultdict[cveid]['score']
+                                self.resultdict[cveid]['history'][lastitem]['score'] = self.resultdict[cveid]['score']
 
                     if nvddescriptions != None:
                         if len(nvddescriptions) != 0:
                             if len(self.resultdict[cveid]['nvddescriptions']) == 0:
-                                changelog['nvddescriptions'] = True
-                                histitem['nvddescriptions'] = list()
+                                self.resultdict[cveid]['history'][lastitem]['changelog']['nvddescriptions'] = True
+                                self.resultdict[cveid]['history'][lastitem]['nvddescriptions'] = list()
                             else:
                                 for description in nvddescriptions:
                                     found = False
@@ -101,15 +109,15 @@ class Result:
                                             found = True
                                             break
                                     if found == False:
-                                        changelog['nvddescriptions'] = True
-                                        histitem['nvddescriptions'] = self.resultdict[cveid]['nvddescriptions']
+                                        self.resultdict[cveid]['history'][lastitem]['changelog']['nvddescriptions'] = True
+                                        self.resultdict[cveid]['history'][lastitem]['nvddescriptions'] = self.resultdict[cveid]['nvddescriptions']
                                         break
 
                     if nvdrefs != None:
                         if len(nvdrefs) != 0:
                             if len(self.resultdict[cveid]['nvdrefs']) == 0:
-                                changelog['nvdrefs'] = True
-                                histitem['nvdrefs']= list()
+                                self.resultdict[cveid]['history'][lastitem]['changelog']['nvdrefs'] = True
+                                self.resultdict[cveid]['history'][lastitem]['nvdrefs']= list()
                             else:
                                 for refitem in nvdrefs:
                                     found = False
@@ -118,19 +126,26 @@ class Result:
                                             found = True
                                             break
                                     if found == False:
-                                        changelog['nvdrefs'] = True
-                                        histitem['nvdrefs'] = self.resultdict[cveid]['nvdrefs']
+                                        self.resultdict[cveid]['history'][lastitem]['changelog']['nvdrefs'] = True
+                                        self.resultdict[cveid]['history'][lastitem]['nvdrefs'] = self.resultdict[cveid]['nvdrefs']
                                         break
-
-            if redhat_info != None:
+            if redhat_info != None and len(redhat_info) != 0:
+                if not self.resultdict[cveid]['redhat_info'].__contains__('AffectedRelease') and redhat_info.__contains__('AffectedRelease'):
+                    self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] = True
                 self.resultdict[cveid]['redhat_info'] = redhat_info
             if bugzilla_desc != None:
+                if self.resultdict[cveid]['bugzilla_desc'] != bugzilla_desc:
+                    self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] = True
                 self.resultdict[cveid]['bugzilla_desc'] = bugzilla_desc
             if bugzilla_url != None:
                 self.resultdict[cveid]['bugzilla_url'] = bugzilla_url
             if details != None:
+                if self.resultdict[cveid]['details'] != details:
+                    self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] = True
                 self.resultdict[cveid]['details'] = details
             if mitigation != None:
+                if self.resultdict[cveid]['mitigation'] != mitigation:
+                    self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] = True
                 self.resultdict[cveid]['mitigation'] = mitigation
             if nvddescriptions != None:
                 self.resultdict[cveid]['nvddescriptions'] = nvddescriptions
@@ -142,34 +157,37 @@ class Result:
                         self.resultdict[cveid]['score'] = 11
                 else:
                     self.resultdict[cveid]['score'] = cvescore
-                                    
+                                   
+            if self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] == True:
+                if self.resultdict[cveid]['status'] == 'Seen':
+                    self.resultdict[cveid]['status'] = 'Update'
+ 
             if affectedproducts != None:
                 for vendor,proddict in affectedproducts.items():
                     if not self.resultdict[cveid]['affectedproducts'].__contains__(vendor):
                         self.resultdict[cveid]['affectedproducts'][vendor] = proddict
-                        changelog['nvdaffectedproducts'] = True
+                        self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
                         continue
                     for prodname,versionlist in proddict.items():
                         if not self.resultdict[cveid]['affectedproducts'][vendor].__contains__(prodname):
                             self.resultdict[cveid]['affectedproducts'][vendor][prodname] = versionlist
-                            changelog['nvdaffectedproducts'] = True
+                            self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
                             continue
                         for version in versionlist:
                             if not self.resultdict[cveid]['affectedproducts'][vendor][prodname].__contains__(version):
                                 self.resultdict[cveid]['affectedproducts'][vendor][prodname].append(version)
-                                changelog['nvdaffectedproducts'] = True
+                                self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
                                 continue
-
-            if changelog['score'] == False and changelog['nvddescriptions'] == False and changelog['nvdrefs'] == False and changelog['nvdaffectedproducts'] == False:
-                changelog['other'] = True
-            if changelog['score'] == False and changelog['nvddescriptions'] == False and changelog['nvdaffectedproducts'] == False and changelog['nvdrefs'] == True:
-                self.resultdict[cveid]['status'] = 'R-Update'
-            if changelog['score'] == True and changelog['nvddescriptions'] == False and changelog['nvdrefs'] == False and changelog['nvdaffectedproducts'] == False:
-                self.resultdict[cveid]['status'] = 'S-Update'
-            histitem['changelog']=changelog
-            if not self.resultdict[cveid].__contains__('history'):
-                self.resultdict[cveid]['history'] = list()
-            self.resultdict[cveid]['history'].append(histitem)
+            if self.resultdict[cveid]['history'][lastitem]['changelog']['score'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvddescriptions'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdrefs'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] == False:
+                self.resultdict[cveid]['history'][lastitem]['changelog']['other'] = True
+            if self.resultdict[cveid]['history'][lastitem]['changelog']['score'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvddescriptions'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdrefs'] == True:
+                if self.resultdict[cveid]['status'] == 'Seen':
+                    self.resultdict[cveid]['status'] = 'R-Update'
+            if self.resultdict[cveid]['history'][lastitem]['changelog']['nvddescriptions'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdrefs'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['score'] == True:
+                if self.resultdict[cveid]['status'] == 'Seen':
+                    self.resultdict[cveid]['status'] = 'S-Update'
+            if self.resultdict[cveid]['status'] != 'Update' and self.resultdict[cveid]['status'] != 'R-Update' and self.resultdict[cveid]['status'] != 'S-Update':
+                popped=self.resultdict[cveid]['history'].pop(lastitem)
             
             if self.resultdict[cveid]['status'] == 'S-Update' and self.ignoresupdates == True:
                 return
@@ -184,9 +202,7 @@ class Result:
 
         else:
             self.resultdict[cveid] = OrderedDict()
-            dtobj = datetime.datetime.utcnow()
-            dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
-            self.resultdict[cveid]['insertiondate'] = dtstr
+            self.resultdict[cveid]['insertiondate'] = self.session_dtstr
             self.resultdict[cveid]['status'] = 'Fresh'
             self.resultdict[cveid]['affectedproducts'] = dict()
             self.resultdict[cveid]['nvddescriptions'] = list()
@@ -195,6 +211,7 @@ class Result:
             self.resultdict[cveid]['bugzilla_url'] = None
             self.resultdict[cveid]['bugzilla_desc'] = None
             self.resultdict[cveid]['details'] = None
+            self.resultdict[cveid]['mitigation'] = None
         
             if redhat_info != None:
                 self.resultdict[cveid]['redhat_info'] = redhat_info
@@ -203,6 +220,8 @@ class Result:
                 self.resultdict[cveid]['bugzilla_desc'] = bugzilla_desc
             if bugzilla_url != None:
                 self.resultdict[cveid]['bugzilla_url'] = bugzilla_url
+            if mitigation != None:
+                self.resultdict[cveid]['mitigation'] = mitigation
             
             if cvescore != None:
                 self.resultdict[cveid]['score'] = cvescore
@@ -990,6 +1009,9 @@ class CVECheck:
         self.write_store(self.vulnstore,pobj)
     
     def update_store(self):
+        dtobj = datetime.datetime.utcnow()
+        dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
+        self.resObj.session_dtstr = dtstr
         self.read_nvd_channels()
         #first read in the vulnstore, so we don't accidentally forget what we've seen or muted
         retval,self.resObj.resultdict = self.read_store(self.vulnstore,self.resObj.resultdict)

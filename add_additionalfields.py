@@ -9,4 +9,8 @@ for cve,vals in pobj.items():
         vals['muting_reason'] = 'Batch-mute'
     if not vals.__contains__('muting_product'):
         vals['muting_product'] = 'Misc'
+    if vals.__contains__('history'):
+        for histitem in vals['history']:
+            if not histitem['changelog'].__contains__('rhupdated'):
+                histitem['changelog']['rhupdated'] = False
 cveobj.write_store('vulnstore.json',pobj)
