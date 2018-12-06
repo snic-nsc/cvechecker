@@ -1011,9 +1011,6 @@ class CVECheck:
         self.write_store(self.vulnstore,pobj)
     
     def update_store(self):
-        dtobj = datetime.datetime.utcnow()
-        dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
-        self.resObj.session_dtstr = dtstr
         self.read_nvd_channels()
         #first read in the vulnstore, so we don't accidentally forget what we've seen or muted
         retval,self.resObj.resultdict = self.read_store(self.vulnstore,self.resObj.resultdict)
@@ -1067,6 +1064,7 @@ def main():
     aparser.add_argument("-n", "--no-connection", type=str, nargs='?',default='none',help='do not connect to external servers (NVD, Redhat), to fetch updated CVE information (useful while debugging).')
     aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product, e.g. http_server
     aparser.add_argument("-r", "--read-config", type=str, nargs='?',default='none',help='read package and keyword filter values from the configuration file. Additional filters may be provided on the command-line. Optional argument: configuration file to be read; defaults to cvechecker.conf')
+    aparser.add_argument("--refresh-mutes", type=str, nargs='?',default='none',help='refresh muting timestamp, retaining other muting information unchanged. Needs to be combined with --mute on.')
     aparser.add_argument("-s", "--severity", type=str,default='none',help='filter results by severity level. Valid levels are "None", "Low", "Medium", "High", and "Critical". Needs to be used with --product, or --after-date.') #lookup by severity level
     aparser.add_argument("-u", "--update", type=str, nargs='?',default='none',help='update the vulnerability store. Should be run regularly, preferably from a cron.')
     aparser.add_argument("-w","--whitelist-helper", type=str, nargs='?', default='none',help='interactively select results for adding to whitelisted file, for subsequent manual muting.')
@@ -1086,6 +1084,7 @@ def main():
     update = args.update
     examples = args.examples
     exportmutes = args.export_mutes
+    refreshmutes = args.refresh_mutes
     importmutes = args.import_mutes
     exclude = args.exclude
     whitelist = args.whitelist_helper
@@ -1108,6 +1107,9 @@ def main():
     else:
         cveobj = CVECheck()
     signal.signal(signal.SIGINT, cveobj.sig_handler)
+    dtobj = datetime.datetime.utcnow()
+    dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
+    cveobj.resObj.session_dtstr = dtstr
 
     if update != 'none':
         if ignoresupdates != 'none':
@@ -1145,9 +1147,12 @@ def main():
             if pobj[cve].__contains__('lastmodifieddate'):
                 muteddobj = datetime.datetime.strptime(dts,'%Y-%m-%d %H:%M')
                 storedlmtdobj = datetime.datetime.strptime(pobj[cve]['lastmodifieddate'],'%Y-%m-%d %H:%M')
-                if storedlmtdobj > muteddobj: #we should not mute this
-                    print("Will not mute %s as it has a last modification date newer than the muting date."%cve)
-                    continue
+                if storedlmtdobj > muteddobj: #we should not mute this unless the refresh--mutes option is in effect
+                    if refreshmutes != 'none':
+                        dts = dtstr
+                    else:
+                        print("Will not mute %s as it has a last modification date newer than the muting date."%cve)
+                        continue
             changed = True
             pobj[cve]['mute'] = 'on'
             pobj[cve]['status'] = 'Seen'
