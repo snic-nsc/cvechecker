@@ -1,5 +1,9 @@
 # Change list
 
+## v1.17.16
+
+- Fixed issue with unnecessary appending of history items, even if there were no real changes, leading to history bloat.
+
 ## v1.17.15
 
 - Add --refresh-mutes option, to refresh the muting timestamp, without modifying other muting information.

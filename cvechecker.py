@@ -52,6 +52,8 @@ class Result:
     
     def add_result(self, cveid, cveurl, bugzilla_desc, bugzilla_url, cvescore, affectedproducts,details, redhat_info,mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
         update = False
+        keephist = False
+        addedhist = False
         if self.resultdict.__contains__(cveid):
             if not self.resultdict[cveid].__contains__('history'):
                 self.resultdict[cveid]['history'] = list()
@@ -68,15 +70,18 @@ class Result:
                 histitem['changelog'] = changelog
                 histitem['histitementrydate'] = self.session_dtstr
                 self.resultdict[cveid]['history'].append(histitem)
-                lastitem=0
+                addedhist = True
+                lastitem+=1
             if lastmodifieddate != None:
                 lmtdobj = datetime.datetime.strptime(lastmodifieddate,'%Y-%m-%d %H:%M')
                 if self.resultdict[cveid].__contains__('lastmodifieddate') and self.resultdict[cveid]['lastmodifieddate'] != None: # we might have an update
                     storedlmtdobj = datetime.datetime.strptime(self.resultdict[cveid]['lastmodifieddate'],'%Y-%m-%d %H:%M')
                     if storedlmtdobj < lmtdobj: #we indeed have an update
                         update = True
+                        keephist = True
                 else: #
                     update = True
+                    keephist = True
                 if update:
                     if self.resultdict[cveid]['status'] == 'Seen':
                         self.resultdict[cveid]['status'] = 'Update'
@@ -132,20 +137,24 @@ class Result:
             if redhat_info != None and len(redhat_info) != 0:
                 if not self.resultdict[cveid]['redhat_info'].__contains__('AffectedRelease') and redhat_info.__contains__('AffectedRelease'):
                     self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] = True
+                    keephist = True
                 self.resultdict[cveid]['redhat_info'] = redhat_info
             if bugzilla_desc != None:
                 if self.resultdict[cveid]['bugzilla_desc'] != bugzilla_desc:
                     self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] = True
+                    keephist = True
                 self.resultdict[cveid]['bugzilla_desc'] = bugzilla_desc
             if bugzilla_url != None:
                 self.resultdict[cveid]['bugzilla_url'] = bugzilla_url
             if details != None:
                 if self.resultdict[cveid]['details'] != details:
                     self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] = True
+                    keephist = True
                 self.resultdict[cveid]['details'] = details
             if mitigation != None:
                 if self.resultdict[cveid]['mitigation'] != mitigation:
                     self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] = True
+                    keephist = True
                 self.resultdict[cveid]['mitigation'] = mitigation
             if nvddescriptions != None:
                 self.resultdict[cveid]['nvddescriptions'] = nvddescriptions
@@ -186,7 +195,7 @@ class Result:
             if self.resultdict[cveid]['history'][lastitem]['changelog']['nvddescriptions'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdrefs'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['score'] == True:
                 if self.resultdict[cveid]['status'] == 'Seen':
                     self.resultdict[cveid]['status'] = 'S-Update'
-            if self.resultdict[cveid]['status'] != 'Update' and self.resultdict[cveid]['status'] != 'R-Update' and self.resultdict[cveid]['status'] != 'S-Update':
+            if addedhist == True and keephist != True:
                 popped=self.resultdict[cveid]['history'].pop(lastitem)
             
             if self.resultdict[cveid]['status'] == 'S-Update' and self.ignoresupdates == True:
