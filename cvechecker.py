@@ -83,8 +83,6 @@ class Result:
                     update = True
                     keephist = True
                 if update:
-                    if self.resultdict[cveid]['status'] == 'Seen':
-                        self.resultdict[cveid]['status'] = 'Update'
 
                     #now to identify and note what's changed
 
@@ -506,7 +504,16 @@ class Result:
                 print("First seen date: %s"%val['insertiondate'])
             if val.__contains__('lastmodifieddate'):
                 print("Last Modification date: %s"%val['lastmodifieddate'])
-            if val['status'] == 'Update' or val['status'] == 'R-Update' or val['status'] == 'S-Update':
+            print_changelog = False
+            if val.__contains__('history') and len(val['history']) >0:
+                lastitem=len(val['history'])-1
+                if val['history'][lastitem].__contains__('changelog'):
+                    for changeitem,changeitemval in val['history'][lastitem]['changelog'].items():
+                        if changeitemval == True:
+                            print_changelog = True
+            if val['status'] == 'Update' or val['status'] == 'R-Update' or val['status'] == 'S-Update' or print_changelog == True:
+                if val['status'] != 'Update' and val['status'] != 'R-Update' and val['status'] != 'S-Update':
+                    print("\nThis CVE has recently been updated, but this is the first time this CVE has matched your search parameters (most likely due to the info that has been updated), hence the status value 'Fresh'.")
                 print("\nChangelog")
                 print("----------")
                 print("")

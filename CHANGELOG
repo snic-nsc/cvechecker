@@ -1,5 +1,10 @@
 # Change list
 
+## v1.17.17
+
+- Fix for bug # 5.
+- Enhanced information in reports, and changelog printed if changes were found, even if status was 'Fresh'.
+
 ## v1.17.16
 
 - Fixed issue with unnecessary appending of history items, even if there were no real changes, leading to history bloat.
