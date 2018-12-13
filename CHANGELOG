@@ -1,5 +1,9 @@
 # Change list
 
+## v1.17.18
+
+- Change status from 'Seen' to 'R-Update' or 'S-Update', only if the ignore options are not set. If the ignore options are set, the CVE will neither be unmuted, nor will the status change.
+
 ## v1.17.17
 
 - Fix for bug # 5.

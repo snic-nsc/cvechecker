@@ -188,10 +188,10 @@ class Result:
             if self.resultdict[cveid]['history'][lastitem]['changelog']['score'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvddescriptions'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdrefs'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] == False:
                 self.resultdict[cveid]['history'][lastitem]['changelog']['other'] = True
             if self.resultdict[cveid]['history'][lastitem]['changelog']['score'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvddescriptions'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdrefs'] == True:
-                if self.resultdict[cveid]['status'] == 'Seen':
+                if self.resultdict[cveid]['status'] == 'Seen' and self.ignorerupdates == False:
                     self.resultdict[cveid]['status'] = 'R-Update'
             if self.resultdict[cveid]['history'][lastitem]['changelog']['nvddescriptions'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdrefs'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['score'] == True:
-                if self.resultdict[cveid]['status'] == 'Seen':
+                if self.resultdict[cveid]['status'] == 'Seen' and self.ignoresupdates == False:
                     self.resultdict[cveid]['status'] = 'S-Update'
             if addedhist == True and keephist != True:
                 popped=self.resultdict[cveid]['history'].pop(lastitem)
@@ -419,8 +419,6 @@ class Result:
         #outside the loop
         
         if mute != 'none':
-            dtobj = datetime.datetime.utcnow()
-            dtstr = datetime.datetime.strftime(dtobj,'%Y-%m-%d %H:%M')
             for entry in newresultdict:
                 if mute == 'on':
                     retval = self.check_pinned(entry)
@@ -432,9 +430,9 @@ class Result:
                         continue
                     newresultdict[entry]['mute'] = 'on'
                     self.resultdict[entry]['mute'] = 'on'
-                    newresultdict[entry]['muteddate'] = dtstr
+                    newresultdict[entry]['muteddate'] = self.session_dtstr
                     newresultdict[entry]['status'] = 'Seen'
-                    self.resultdict[entry]['muteddate'] = dtstr
+                    self.resultdict[entry]['muteddate'] = self.session_dtstr
                     self.resultdict[entry]['status'] = 'Seen'
                     if log_mute == None:
                         newresultdict[entry]['muting_reason'] = 'Batch-mute'
@@ -447,7 +445,7 @@ class Result:
                         self.resultdict[entry]['muting_reason'] = log_mute['muting_reason']
                         self.resultdict[entry]['muting_product'] = log_mute['product']
                         with open(log_mute['logfile'],'a') as inp:
-                            inp.write("%s|%s|%s|%s\n"%(entry,log_mute['product'],dtstr,log_mute['muting_reason']))
+                            inp.write("%s|%s|%s|%s\n"%(entry,log_mute['product'],self.session_dtstr,log_mute['muting_reason']))
                 else:
                     newresultdict[entry]['mute'] = 'off'
                     self.resultdict[entry]['mute'] = 'off'
