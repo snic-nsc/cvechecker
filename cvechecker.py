@@ -511,7 +511,7 @@ class Result:
                             print_changelog = True
             if val['status'] == 'Update' or val['status'] == 'R-Update' or val['status'] == 'S-Update' or print_changelog == True:
                 if val['status'] != 'Update' and val['status'] != 'R-Update' and val['status'] != 'S-Update':
-                    print("\nThis CVE has recently been updated, but this is the first time this CVE has matched your search parameters (most likely due to the info that has been updated), hence the status value 'Fresh'.")
+                    print("\nThis CVE has been updated, but it has either never been 'muted' (recognised as an open issue)  or this is the first time this CVE has matched your search parameters (likely due to the info that has been updated), hence the status value 'Fresh'.")
                 print("\nChangelog")
                 print("----------")
                 print("")
