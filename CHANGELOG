@@ -1,5 +1,9 @@
 # Change list
 
+## v1.17.19
+
+- Add the --last option, to allow for an operation like the --after-date, but by specifying a number of days. This is useful when run from a cron. This also helps to guard against a deluge of alerts if a new product is added to the watch list.
+
 ## v1.17.18
 
 - Change status from 'Seen' to 'R-Update' or 'S-Update', only if the ignore options are not set. If the ignore options are set, the CVE will neither be unmuted, nor will the status change.

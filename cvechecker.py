@@ -1074,6 +1074,7 @@ def main():
     aparser.add_argument("--ignore-rupdates", type=str, nargs='?',default='none',help='do not unmute if the only update is an added reference link.')
     aparser.add_argument("-k", "--keyword", type=str, default='none',help='filter results by specified keyword/comma-separated list of keywords in CVE description text from NVD. Can be combined with -p, to get a union set.') #lookup by keyword e.g. Intel
     aparser.add_argument("-l", "--log-mute", type=str, nargs='?',default='none',help='log a custom message upon muting. Can specify log file as an optional argument.')
+    aparser.add_argument("--last", type=int, default=0,help='filter results to results with modification date in the last x days only. Works like the --after-date option, but takes an integer argument which is counted back from current date.')
     aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one of --product or --cve options') #mark results as seen or unseen
     aparser.add_argument("-n", "--no-connection", type=str, nargs='?',default='none',help='do not connect to external servers (NVD, Redhat), to fetch updated CVE information (useful while debugging).')
     aparser.add_argument("-p", "--product", type=str, default='none',help='filter results by specified product name or comma-separated list of products.') #lookup by product, e.g. http_server
@@ -1106,6 +1107,7 @@ def main():
     afterdate = args.after_date
     beforedate = args.before_date
     readconfig = args.read_config
+    last = args.last
 
     argsdict = dict()
     argsdict['scores'] = None
@@ -1205,7 +1207,14 @@ def main():
         if cve != 'none':
             print('Cannot specify -c and -a flags simultaneously.')
             sys.exit(-1)
-        argsdict['afterdate']=dtcheck
+        argsdict['afterdate'] = dtcheck
+
+    if last != 0:
+        if cve != 'none':
+            print('Cannot specify -c and --last flags simultaneously.')
+            sys.exit(-1)
+        ntobj = dtobj+datetime.timedelta(days=-(last))
+        argsdict['afterdate'] = ntobj
 
     if beforedate != 'none':
         try:
