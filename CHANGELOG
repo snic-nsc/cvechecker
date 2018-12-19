@@ -1,4 +1,7 @@
 # Change list
+## <next>
+
+- Minor changes to ordering of information in the 'Changelog' section of a report, to ensure full list of changes is immediately visible, without having to scroll.
 
 ## v1.17.19
 
