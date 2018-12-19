@@ -17,6 +17,7 @@ import gzip
 import os
 import difflib
 import signal
+import operator
 socket.setdefaulttimeout(30)
 
 class CVE:
@@ -1182,10 +1183,19 @@ def main():
     if exportmutes != 'none':
         with open(exportmutes,'w') as out:
             pobj=dict()
+            expobj=dict()
+            expentry=dict()
             retval,pobj=cveobj.read_store(cveobj.vulnstore,pobj)
             for cve,vals in pobj.items():
                 if vals['mute'] == 'on':
-                    out.write("%s|%s|%s|%s\n"%(cve,vals['muting_product'],vals['muteddate'],vals['muting_reason']))
+                    expentry['muting_product'] = vals['muting_product']
+                    expentry['muteddate'] = vals['muteddate']
+                    expentry['muting_reason'] = vals['muting_reason']
+                    expobj[cve] = expentry
+                    
+            sorted_tup = sorted(expobj.items(),key=operator.itemgetter(0))
+            for tup in sorted_tup:
+                    out.write("%s|%s|%s|%s\n"%(tup[0],tup[1]['muting_product'],tup[1]['muteddate'],tup[1]['muting_reason']))
             sys.exit(0)
 
     if examples != 'none':

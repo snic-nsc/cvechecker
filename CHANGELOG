@@ -1,7 +1,9 @@
 # Change list
-## <next>
+
+## v1.17.20
 
 - Minor changes to ordering of information in the 'Changelog' section of a report, to ensure full list of changes is immediately visible, without having to scroll.
+- Sort exportedmutes by CVE name, prior to exporting. This makes it easier to diff on the file, before and after exporting.
 
 ## v1.17.19
 
