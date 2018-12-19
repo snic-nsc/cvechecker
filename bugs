@@ -14,4 +14,4 @@ python3 cvechecker.py
   File "cvechecker.py", line 463
     if val['status'] == 'Update' or val['status'] == 'R-Update' or val['status'] = 'S-Update':
 5| R-Updates and S-Updates were in some cases (when the previous status was 'Seen'), being misreported as 'Updates'.|v1.17.16|Fixed|v1.17.17
-
+6| muting information getting clobbered in exportedmutes due to dict item initialization outside the loop|v1.17.20|Fixed|v1.17.21

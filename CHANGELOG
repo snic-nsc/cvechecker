@@ -1,5 +1,9 @@
 # Change list
 
+## v1.17.21
+
+- Fix for bug 6 (clobbering of muting information in exportedmutes due to dict initialization prior to loop)
+
 ## v1.17.20
 
 - Minor changes to ordering of information in the 'Changelog' section of a report, to ensure full list of changes is immediately visible, without having to scroll.

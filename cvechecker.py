@@ -1184,10 +1184,10 @@ def main():
         with open(exportmutes,'w') as out:
             pobj=dict()
             expobj=dict()
-            expentry=dict()
             retval,pobj=cveobj.read_store(cveobj.vulnstore,pobj)
             for cve,vals in pobj.items():
                 if vals['mute'] == 'on':
+                    expentry=dict()
                     expentry['muting_product'] = vals['muting_product']
                     expentry['muteddate'] = vals['muteddate']
                     expentry['muting_reason'] = vals['muting_reason']
