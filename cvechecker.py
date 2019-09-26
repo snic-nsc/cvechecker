@@ -301,6 +301,7 @@ class Result:
                 
     def trim_result(self, products=None, keywords=None, scores=None, cves=None, afterdate=None, beforedate=None, excludes=None, mute='none', log_mute=None, vulnstore=None):
         newresultdict = dict()
+        excludedcves = list ()
         if cves != None:
             for cve in cves:
                 if self.resultdict.__contains__(cve):
@@ -343,6 +344,7 @@ class Result:
                                             excluded = True
                                             break
                 if excluded == True:
+                    excludedcves.append(key)
                     continue
 
                 if beforedate != None:
@@ -479,8 +481,11 @@ class Result:
                     newresultdict[entry]['muting_reason'] = ''
                     self.resultdict[entry]['muting_reason'] = ''
                     
-            with codecs.open(vulnstore,'w','utf-8') as outfile:
-                json.dump(self.resultdict,outfile)
+            #with codecs.open(vulnstore,'w','utf-8') as outfile:
+            #   json.dump(self.resultdict,outfile)
+        with open('excludedcves','w') as out:
+            for cve in excludedcves:
+                out.write('%s,'%cve)
         self.resultdict = newresultdict
 
     def print_result(self, readconfig, conffile, mutestate='on'):
