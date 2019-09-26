@@ -659,7 +659,7 @@ class CVECheck:
                 if line.startswith('#'):
                     continue
                 fname = line.split('|')[0]
-                if fname != 'CVE-Modified':
+                if fname != 'CVE-Modified' and fname != 'CVE-Recent':
                     self.subscribed.append(fname)
                 fname += '.json'
                 metafname = fname+'.meta'
@@ -823,10 +823,9 @@ class CVECheck:
                                 if not inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']].__contains__(version['version_value']):
                                     inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']].append(version['version_value'])
                     
-                    self.resObj.add_result(**inputs)
                 except:
                     exceptioncount += 1
-                    continue
+                self.resObj.add_result(**inputs)
         #print idxcount,basescorex,descx,datex
         #print 'datex is %s'%(str(datex))
         #print 'descx is %s'%(str(descx))
