@@ -1444,10 +1444,10 @@ def main():
                 if val['mute'] == 'on':
                     continue
                 try:
-                    resp = input("Whitelist entry %s?(Y/n)"%key)
+                    resp = input("Whitelist entry %s?(N/y)"%key)
                 except CustomException:
                     break
-                if resp == 'N' or resp == 'n':
+                if resp != 'Y' and resp != 'y':
                     continue
                 if cveobj.goodbye:
                     break
