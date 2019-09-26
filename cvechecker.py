@@ -26,6 +26,7 @@ class CVE:
         self.cveurl = None
         self.cvescore = None
         self.affectedproducts = dict()
+        self.unaffectedproducts = dict()
         self.descriptions = list()
         self.details = list()
         self.mitigation = None
@@ -33,7 +34,7 @@ class CVE:
         self.lastmodifieddate = None
         self.isnew = True
 
-    def update_cve(self,cveid, cveurl,cvescore,affectedproducts,details,mitigation,nvddescriptions,lastmodifieddate):
+    def update_cve(self,cveid, cveurl,cvescore,affectedproducts,unaffectedproducts,details,mitigation,nvddescriptions,lastmodifieddate):
         pass
 
 class Result:
@@ -51,7 +52,7 @@ class Result:
         self.scoredefs['Critical'] = {'high':10.0, 'low':9.0}
         self.scoredefs['Missing'] = {'high':11.0, 'low':11.0}
     
-    def add_result(self, cveid, cveurl, bugzilla_desc, bugzilla_url, cvescore, affectedproducts,details, redhat_info,mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
+    def add_result(self, cveid, cveurl, bugzilla_desc, bugzilla_url, cvescore, affectedproducts,unaffectedproducts,details, redhat_info,mitigation, nvddescriptions, nvdrefs, lastmodifieddate):
         update = False
         keephist = False
         addedhist = False
@@ -186,6 +187,24 @@ class Result:
                                 self.resultdict[cveid]['affectedproducts'][vendor][prodname].append(version)
                                 self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
                                 continue
+
+            if unaffectedproducts != None:
+                for vendor,proddict in unaffectedproducts.items():
+                    if not self.resultdict[cveid]['unaffectedproducts'].__contains__(vendor):
+                        self.resultdict[cveid]['unaffectedproducts'][vendor] = proddict
+                        self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
+                        continue
+                    for prodname,versionlist in proddict.items():
+                        if not self.resultdict[cveid]['unaffectedproducts'][vendor].__contains__(prodname):
+                            self.resultdict[cveid]['unaffectedproducts'][vendor][prodname] = versionlist
+                            self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
+                            continue
+                        for version in versionlist:
+                            if not self.resultdict[cveid]['unaffectedproducts'][vendor][prodname].__contains__(version):
+                                self.resultdict[cveid]['unaffectedproducts'][vendor][prodname].append(version)
+                                self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
+                                continue
+
             if self.resultdict[cveid]['history'][lastitem]['changelog']['score'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvddescriptions'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdrefs'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] == False:
                 self.resultdict[cveid]['history'][lastitem]['changelog']['other'] = True
             if self.resultdict[cveid]['history'][lastitem]['changelog']['score'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvddescriptions'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['rhupdated'] == False and self.resultdict[cveid]['history'][lastitem]['changelog']['nvdrefs'] == True:
@@ -213,6 +232,7 @@ class Result:
             self.resultdict[cveid]['insertiondate'] = self.session_dtstr
             self.resultdict[cveid]['status'] = 'Fresh'
             self.resultdict[cveid]['affectedproducts'] = dict()
+            self.resultdict[cveid]['unaffectedproducts'] = dict()
             self.resultdict[cveid]['nvddescriptions'] = list()
             self.resultdict[cveid]['nvdrefs'] = list()
             self.resultdict[cveid]['redhat_info'] = dict()
@@ -241,6 +261,8 @@ class Result:
             self.resultdict[cveid]['muting_product'] = ''
             if affectedproducts != None:
                 self.resultdict[cveid]['affectedproducts'] = affectedproducts
+            if unaffectedproducts != None:
+                self.resultdict[cveid]['unaffectedproducts'] = unaffectedproducts
             if nvddescriptions != None:
                 self.resultdict[cveid]['nvddescriptions'] = nvddescriptions
             if nvdrefs != None:
@@ -603,21 +625,38 @@ class Result:
                 for desc in self.resultdict[key]['nvddescriptions']:
                     print(desc)
             print("")
-            print("Affected Products")
-            print("-----------------")
-            for vendor,proddict in val['affectedproducts'].items():
-                print('\nVendor: %s'%vendor)
-                for prod,prodlist in proddict.items():
-                    print('\n\tProduct: %s'%prod)
-                    sys.stdout.write('\tAffected Versions: ')
-                    afcount = len(prodlist)
-                    afctr = 0
-                    for version in prodlist:
-                        if afctr < afcount-1:
-                            sys.stdout.write("%s, "%version)
-                        else:
-                            sys.stdout.write("%s\n"%version)
-                        afctr += 1
+            if len(val['affectedproducts']) > 0:
+                print("Affected Products")
+                print("-----------------")
+                for vendor,proddict in val['affectedproducts'].items():
+                    print('\nVendor: %s'%vendor)
+                    for prod,prodlist in proddict.items():
+                        print('\n\tProduct: %s'%prod)
+                        sys.stdout.write('\tAffected Versions: ')
+                        afcount = len(prodlist)
+                        afctr = 0
+                        for version in prodlist:
+                            if afctr < afcount-1:
+                                sys.stdout.write("%s, "%version)
+                            else:
+                                sys.stdout.write("%s\n"%version)
+                            afctr += 1
+            if len(val['unaffectedproducts']) > 0:
+                print("Unaffected Products")
+                print("-----------------")
+                for vendor,proddict in val['unaffectedproducts'].items():
+                    print('\nVendor: %s'%vendor)
+                    for prod,prodlist in proddict.items():
+                        print('\n\tProduct: %s'%prod)
+                        sys.stdout.write('\tUnaffected Versions: ')
+                        afcount = len(prodlist)
+                        afctr = 0
+                        for version in prodlist:
+                            if afctr < afcount-1:
+                                sys.stdout.write("%s, "%version)
+                            else:
+                                sys.stdout.write("%s\n"%version)
+                            afctr += 1
 
             print("\nReferences")
             print("----------")
@@ -768,6 +807,7 @@ class CVECheck:
                 inputs['bugzilla_url'] = None
                 inputs['cvescore'] = None
                 inputs['affectedproducts'] = dict()
+                inputs['unaffectedproducts'] = dict()
                 inputs['details'] = None
                 inputs['redhat_info'] = None
                 inputs['mitigation'] = None
@@ -808,21 +848,25 @@ class CVECheck:
                 except:
                     datex += 1
                 try:
-                    vendor_list = cveitem['cve']['affects']['vendor']['vendor_data']
-                    for vendor in vendor_list:
-                        if not inputs['affectedproducts'].__contains__(vendor['vendor_name']):
-                            inputs['affectedproducts'][vendor['vendor_name']] = dict()
-                        prod_list = vendor['product']['product_data']
-
-                        for prod in prod_list:
-                            if not inputs['affectedproducts'][vendor['vendor_name']].__contains__(prod['product_name']):
-                                inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']] = list()
-                            version_list = prod['version']['version_data']
-
-                            for version in version_list:
-                                if not inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']].__contains__(version['version_value']):
-                                    inputs['affectedproducts'][vendor['vendor_name']][prod['product_name']].append(version['version_value'])
-                    
+                    for entry in cveitem['configurations']['nodes']:
+                        cpe_matches = entry['cpe_match']
+                        for cpe_match in cpe_matches:
+                                vendor,product,version=cpe_match['cpe23Uri'].split(':')[3:6]
+                                if cpe_match['vulnerable'] == True:
+                                    if not inputs['affectedproducts'].__contains__(vendor):
+                                        inputs['affectedproducts'][vendor] = dict()
+                                    if not inputs['affectedproducts'][vendor].__contains__(product):
+                                        inputs['affectedproducts'][vendor][product] = list()
+                                    if not inputs['affectedproducts'][vendor][product].__contains__(version):
+                                        inputs['affectedproducts'][vendor][product].append(version)
+                                else:
+                                    if not inputs['unaffectedproducts'].__contains__(vendor):
+                                        inputs['unaffectedproducts'][vendor] = dict()
+                                    if not inputs['unaffectedproducts'][vendor].__contains__(product):
+                                        inputs['unaffectedproducts'][vendor][product] = list()
+                                    if not inputs['unaffectedproducts'][vendor][product].__contains__(version):
+                                        inputs['unaffectedproducts'][vendor][product].append(version)
+                                    
                 except:
                     exceptioncount += 1
                 self.resObj.add_result(**inputs)
@@ -930,6 +974,7 @@ class CVECheck:
             inputs['cveid'] = cveid
             inputs['cveurl'] = None
             inputs['affectedproducts'] = None
+            inputs['unaffectedproducts'] = None
             self.assign_if_present('Bugzilla','bugzilla_desc',cveobj,inputs)
             self.assign_if_present('bugzilla_url','bugzilla_url',cveobj,inputs)
             self.assign_if_present('Details','details',cveobj,inputs)
