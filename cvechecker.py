@@ -656,6 +656,10 @@ class Result:
                             else:
                                 sys.stdout.write("%s\n"%version)
                             afctr += 1
+                        if len(prodattribs['cpeinfodict']) > 0:
+                            for cpekey,cpeval in prodattribs['cpeinfodict'].items():
+                                for fieldn, fieldv in cpeval.items():
+                                    print('\t%s: %s'%(fieldn,fieldv))
             if len(val['unaffectedproducts']) > 0:
                 print("Unaffected Products")
                 print("-----------------")
@@ -672,6 +676,10 @@ class Result:
                             else:
                                 sys.stdout.write("%s\n"%version)
                             afctr += 1
+                        if len(prodattribs['cpeinfodict']) > 0:
+                            for cpekey,cpeval in prodattribs['cpeinfodict'].items():
+                                for fieldn, fieldv in cpeval.items():
+                                    print('\t%s: %s'%(fieldn,fieldv))
 
             print("\nReferences")
             print("----------")
