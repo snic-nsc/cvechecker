@@ -177,14 +177,19 @@ class Result:
                         self.resultdict[cveid]['affectedproducts'][vendor] = proddict
                         self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
                         continue
-                    for prodname,versionlist in proddict.items():
+                    for prodname,prodattribs in proddict.items():
                         if not self.resultdict[cveid]['affectedproducts'][vendor].__contains__(prodname):
-                            self.resultdict[cveid]['affectedproducts'][vendor][prodname] = versionlist
+                            self.resultdict[cveid]['affectedproducts'][vendor][prodname] = prodattribs
                             self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
                             continue
-                        for version in versionlist:
-                            if not self.resultdict[cveid]['affectedproducts'][vendor][prodname].__contains__(version):
-                                self.resultdict[cveid]['affectedproducts'][vendor][prodname].append(version)
+                        for version in prodattribs['versions']:
+                            if not self.resultdict[cveid]['affectedproducts'][vendor][prodname]['versions'].__contains__(version):
+                                self.resultdict[cveid]['affectedproducts'][vendor][prodname]['versions'].append(version)
+                                self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
+                                continue
+                        for cpename, cpeinfo in prodattribs['cpeinfodict'].items():
+                            if not self.resultdict[cveid]['affectedproducts'][vendor][prodname]['cpeinfodict'].__contains__(cpename):
+                                self.resultdict[cveid]['affectedproducts'][vendor][prodname]['cpeinfodict'][cpename] = cpeinfo
                                 self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
                                 continue
 
@@ -194,14 +199,19 @@ class Result:
                         self.resultdict[cveid]['unaffectedproducts'][vendor] = proddict
                         self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
                         continue
-                    for prodname,versionlist in proddict.items():
+                    for prodname,prodattribs in proddict.items():
                         if not self.resultdict[cveid]['unaffectedproducts'][vendor].__contains__(prodname):
-                            self.resultdict[cveid]['unaffectedproducts'][vendor][prodname] = versionlist
+                            self.resultdict[cveid]['unaffectedproducts'][vendor][prodname] = prodattribs
                             self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
                             continue
-                        for version in versionlist:
-                            if not self.resultdict[cveid]['unaffectedproducts'][vendor][prodname].__contains__(version):
-                                self.resultdict[cveid]['unaffectedproducts'][vendor][prodname].append(version)
+                        for version in prodattribs['versions']:
+                            if not self.resultdict[cveid]['unaffectedproducts'][vendor][prodname]['versions'].__contains__(version):
+                                self.resultdict[cveid]['unaffectedproducts'][vendor][prodname]['versions'].append(version)
+                                self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
+                                continue
+                        for cpename, cpeinfo in prodattribs['cpeinfodict'].items():
+                            if not self.resultdict[cveid]['unaffectedproducts'][vendor][prodname]['cpeinfodict'].__contains__(cpename):
+                                self.resultdict[cveid]['affectedproducts'][vendor][prodname]['cpeinfodict'][cpename] = cpeinfo
                                 self.resultdict[cveid]['history'][lastitem]['changelog']['nvdaffectedproducts'] = True
                                 continue
 
@@ -635,12 +645,12 @@ class Result:
                 print("-----------------")
                 for vendor,proddict in val['affectedproducts'].items():
                     print('\nVendor: %s'%vendor)
-                    for prod,prodlist in proddict.items():
-                        print('\n\tProduct: %s'%prod)
+                    for prodname,prodattribs in proddict.items():
+                        print('\n\tProduct: %s'%prodname)
                         sys.stdout.write('\tAffected Versions: ')
-                        afcount = len(prodlist)
+                        afcount = len(prodattribs['versions'])
                         afctr = 0
-                        for version in prodlist:
+                        for version in prodattribs['versions']:
                             if afctr < afcount-1:
                                 sys.stdout.write("%s, "%version)
                             else:
@@ -651,12 +661,12 @@ class Result:
                 print("-----------------")
                 for vendor,proddict in val['unaffectedproducts'].items():
                     print('\nVendor: %s'%vendor)
-                    for prod,prodlist in proddict.items():
-                        print('\n\tProduct: %s'%prod)
+                    for prod,prodattribs in proddict.items():
+                        print('\n\tProduct: %s'%prodname)
                         sys.stdout.write('\tUnaffected Versions: ')
-                        afcount = len(prodlist)
+                        afcount = len(prodattribs['versions'])
                         afctr = 0
-                        for version in prodlist:
+                        for version in prodattribs['versions']:
                             if afctr < afcount-1:
                                 sys.stdout.write("%s, "%version)
                             else:
@@ -855,22 +865,34 @@ class CVECheck:
                 try:
                     for entry in cveitem['configurations']['nodes']:
                         cpe_matches = entry['cpe_match']
+                        cpeinfo = dict()
+                        for cpe_match in cpe_matches:
+                            cpeinfo = dict(cpe_match)
+                        cpeinfo.pop('vulnerable')
                         for cpe_match in cpe_matches:
                                 vendor,product,version=cpe_match['cpe23Uri'].split(':')[3:6]
                                 if cpe_match['vulnerable'] == True:
                                     if not inputs['affectedproducts'].__contains__(vendor):
                                         inputs['affectedproducts'][vendor] = dict()
                                     if not inputs['affectedproducts'][vendor].__contains__(product):
-                                        inputs['affectedproducts'][vendor][product] = list()
-                                    if not inputs['affectedproducts'][vendor][product].__contains__(version):
-                                        inputs['affectedproducts'][vendor][product].append(version)
+                                        inputs['affectedproducts'][vendor][product] = dict()
+                                        inputs['affectedproducts'][vendor][product]['versions'] = list()
+                                        inputs['affectedproducts'][vendor][product]['cpeinfodict']= dict()
+                                    if not inputs['affectedproducts'][vendor][product]['versions'].__contains__(version):
+                                        inputs['affectedproducts'][vendor][product]['versions'].append(version)
+                                    if not inputs['affectedproducts'][vendor][product]['cpeinfodict'].__contains__(cpeinfo['cpe23Uri']):
+                                        inputs['affectedproducts'][vendor][product]['cpeinfodict'][cpeinfo['cpe23Uri']]=cpeinfo
                                 else:
                                     if not inputs['unaffectedproducts'].__contains__(vendor):
                                         inputs['unaffectedproducts'][vendor] = dict()
                                     if not inputs['unaffectedproducts'][vendor].__contains__(product):
-                                        inputs['unaffectedproducts'][vendor][product] = list()
-                                    if not inputs['unaffectedproducts'][vendor][product].__contains__(version):
-                                        inputs['unaffectedproducts'][vendor][product].append(version)
+                                        inputs['unaffectedproducts'][vendor][product] = dict()
+                                        inputs['unaffectedproducts'][vendor][product]['versions'] = list()
+                                        inputs['unaffectedproducts'][vendor][product]['cpeinfolist']= list()
+                                    if not inputs['unaffectedproducts'][vendor][product]['versions'].__contains__(version):
+                                        inputs['unaffectedproducts'][vendor][product]['versions'].append(version)
+                                    if not inputs['unaffectedproducts'][vendor][product]['cpeinfodict'].__contains__(cpeinfo['cpe23Uri']):
+                                        inputs['unaffectedproducts'][vendor][product]['cpeinfodict'][cpeinfo['cpe23Uri']]=cpeinfo
                                     
                 except:
                     exceptioncount += 1
