@@ -481,8 +481,8 @@ class Result:
                     newresultdict[entry]['muting_reason'] = ''
                     self.resultdict[entry]['muting_reason'] = ''
                     
-            #with codecs.open(vulnstore,'w','utf-8') as outfile:
-            #   json.dump(self.resultdict,outfile)
+            with codecs.open(vulnstore,'w','utf-8') as outfile:
+               json.dump(self.resultdict,outfile)
         with open('excludedcves','w') as out:
             for cve in excludedcves:
                 out.write('%s,'%cve)
