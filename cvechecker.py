@@ -896,7 +896,7 @@ class CVECheck:
                                     if not inputs['unaffectedproducts'][vendor].__contains__(product):
                                         inputs['unaffectedproducts'][vendor][product] = dict()
                                         inputs['unaffectedproducts'][vendor][product]['versions'] = list()
-                                        inputs['unaffectedproducts'][vendor][product]['cpeinfolist']= list()
+                                        inputs['unaffectedproducts'][vendor][product]['cpeinfodict']= list()
                                     if not inputs['unaffectedproducts'][vendor][product]['versions'].__contains__(version):
                                         inputs['unaffectedproducts'][vendor][product]['versions'].append(version)
                                     if not inputs['unaffectedproducts'][vendor][product]['cpeinfodict'].__contains__(cpeinfo['cpe23Uri']):
@@ -1486,7 +1486,17 @@ def main():
                     continue
                 if cveobj.goodbye:
                     break
+                if log_mute != 'none':
+                    product = input("Product: ")
+                    reason = input("Reason: ")
+                    to_whitelist.append((key,product,dtstr,reason))
+                    continue
                 to_whitelist.append(key)
+            if log_mute != 'none':
+                with open('whitelist_out','w') as out:
+                    for whitelistitem in to_whitelist:
+                        out.write("%s|%s|%s|%s\n"%(whitelistitem[0],whitelistitem[1],whitelistitem[2],whitelistitem[3]))
+                sys.exit(0)
             num_items=len(to_whitelist)
             to_write=''
             ctr=1
