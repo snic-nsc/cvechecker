@@ -897,7 +897,7 @@ class CVECheck:
                                     if not inputs['unaffectedproducts'][vendor].__contains__(product):
                                         inputs['unaffectedproducts'][vendor][product] = dict()
                                         inputs['unaffectedproducts'][vendor][product]['versions'] = list()
-                                        inputs['unaffectedproducts'][vendor][product]['cpeinfodict']= list()
+                                        inputs['unaffectedproducts'][vendor][product]['cpeinfodict']= dist()
                                     if not inputs['unaffectedproducts'][vendor][product]['versions'].__contains__(version):
                                         inputs['unaffectedproducts'][vendor][product]['versions'].append(version)
                                     if not inputs['unaffectedproducts'][vendor][product]['cpeinfodict'].__contains__(cpeinfo['cpe23Uri']):

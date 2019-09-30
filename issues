@@ -1,4 +1,5 @@
 #Bug Number|Description|Noted in version|Status|Fixed in version
+
 1|If CVE lookup (-c) yields no result, it results in a KeyError|v1.14|Fixed|v1.15
 2|--exclude option not when using keyword matching.|v1.14|Fixed|v1.15
 3| While importing muted entries (before updating CVE definitions), it's possible to encounter a muting entry on an entry that's not present in the store, leading to a key-error.|Fixed|v1.17.5
@@ -15,5 +16,9 @@ python3 cvechecker.py
     if val['status'] == 'Update' or val['status'] == 'R-Update' or val['status'] = 'S-Update':
 5| R-Updates and S-Updates were in some cases (when the previous status was 'Seen'), being misreported as 'Updates'.|v1.17.16|Fixed|v1.17.17
 6| muting information getting clobbered in exportedmutes due to dict item initialization outside the loop|v1.17.20|Fixed|v1.17.21
-7| For the 'Update mute' mails, include previous muting reason, if present.
-8| While printing a muted entry, include muting reason, if present.
+7| For the 'Update mute' mails, include previous muting reason, if present.|Won't fix
+8| While printing a muted entry, include muting reason, if present.|Fixed|v1.17.21-11
+9| Bug|v1.17.21-9|Fixed|v1.17.21-11
+  File "cvechecker.py", line 212, in add_result
+    for cpename, cpeinfo in prodattribs['cpeinfodict'].items():
+AttributeError: 'list' object has no attribute 'items'
