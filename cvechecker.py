@@ -518,6 +518,7 @@ class Result:
                 print('Printing muted entry')
                 print('Record insertion date: %s'%val['insertiondate'])
                 print('Record muted date: %s'%val['muteddate'])
+                print('Recorded muting reason: %s'%val['muting_reason'])
             if readconfig:
                 print('Config file used: %s'%conffile)
             print("---BEGIN REPORT---")
