@@ -3,6 +3,7 @@
 
 import codecs
 import sys
+import ssl
 import argparse
 from collections import OrderedDict
 from hashlib import sha256
@@ -738,14 +739,27 @@ class CVECheck:
             print("Catastrophic error with nvdchannels.conf. Check contents for syntax. Refer to nvdchannels.conf.tmpl for help.")
             sys.exit(-1)
 
-    def update_from_nvd(self):
+    def fetch_and_write_file(self,url,outfilename,localcertfile):
+        context = ssl.create_default_context()
+        if localcertfile != False:
+            context.load_verify_locations(localcertfile)
+        try:
+            with urllib.request.urlopen(url,context=context) as response, open(outfilename,'wb') as out_file:
+                data=response.read()
+                out_file.write(data)
+        except:
+            print("Could not write output file; check settings"%outfilename)
+            return(-1)
+        return(0)
+
+    def update_from_nvd(self,localcertfile):
         cksums = dict()
         try:
             if not self.dontconnect:
                 for channel in self.channelinfo:
-                    urllib.request.urlretrieve(self.channelinfo[channel]['metaurl'],self.channelinfo[channel]['metafname'])
+                    self.fetch_and_write_file(url=self.channelinfo[channel]['metaurl'],outfilename=self.channelinfo[channel]['metafname'],localcertfile=localcertfile)
                     with open(self.channelinfo[channel]['metafname'],'r') as inp:
-                        lines = inp.readlines()
+                            lines = inp.readlines()
                     cksum = ''
 
                     for line in lines:
@@ -764,7 +778,7 @@ class CVECheck:
                     retval,sha256sum = self.compute_checksum(channel)
                     if sha256sum != self.channelinfo[channel]['sha256sum']:
                         print("Update available for %s."%self.channelinfo[channel])
-                        urllib.request.urlretrieve(self.channelinfo[channel]['url'],self.channelinfo[channel]['zip'])
+                        self.fetch_and_write_file(url=self.channelinfo[channel]['url'],outfilename=self.channelinfo[channel]['zip'],localcertfile=localcertfile)
                         f=gzip.GzipFile(self.channelinfo[channel]['zip'], 'rb')
                         fcontent = f.read()
                         f.close()
@@ -773,7 +787,7 @@ class CVECheck:
                         os.remove(self.channelinfo[channel]['zip'])
 
                 #insert into sha256sums if lines not present
-                retval = self.check_for_changes(fname=channel)
+                retval = self.check_for_changes(fname=channel,localcertfile=localcertfile)
                 if retval != 0:
                     changed = True
                     print("Updated file %s successfully."%channel)
@@ -788,7 +802,7 @@ class CVECheck:
             #no metadata files. read the local nvd files
             try:
                 for channel in self.channelinfo:
-                    retval = self.check_for_changes(fname=channel)
+                    retval = self.check_for_changes(fname=channel,localcertfile=localcertfile)
                     if retval == -1:
                         raise
             except:
@@ -912,12 +926,12 @@ class CVECheck:
         print(len(self.resObj.resultdict))
         self.writeback = True
                 
-    def update_from_redhat(self,url):
+    def update_from_redhat(self,url,localcertfile):
             url = self.sources['redhat']
             if self.dontconnect:
                 return(False,'cvemap.xml')
             try:
-                urllib.request.urlretrieve(url,'cvemap.xml')
+                self.fetch_and_write_file(url=url, outfilename='cvemap.xml',localcertfile=localcertfile)
                 tree = ET.parse('cvemap.xml')
                 root = tree.getroot()
                 if root.tag != 'cvemap':
@@ -925,7 +939,7 @@ class CVECheck:
             except:
                 print('cannot update CVEs for redhat packages; check internet connectivity.')
                 return(False,None)
-            retval = self.check_for_changes(fname='cvemap.xml')
+            retval = self.check_for_changes(fname='cvemap.xml',localcertfile=localcertfile)
             if retval == 0:
                 print("No update available from Redhat.")
                 return(False,'cvemap.xml')
@@ -1053,11 +1067,10 @@ class CVECheck:
             return (0,cksums[fname])
         return (-1,None)
 
-    def check_for_changes(self,url=None,fname=None):
+    def check_for_changes(self,url=None,fname=None,localcertfile=None):
         if url != None:
-            try:
-                urllib.request.urlretrieve(url,fname)
-            except:
+            retval = self.fetch_and_write_file(url=url, outfilename=fname,localcertfile=localcertfile)
+            if retval != 0:
                 return(-1)
 
         cksums = OrderedDict()
@@ -1105,19 +1118,19 @@ class CVECheck:
             print('Ejected %s from vulnstore.'%cve)
         self.write_store(self.vulnstore,pobj)
     
-    def update_store(self):
+    def update_store(self,localcertfile):
         self.read_nvd_channels()
         #first read in the vulnstore, so we don't accidentally forget what we've seen or muted
         retval,self.resObj.resultdict = self.read_store(self.vulnstore,self.resObj.resultdict)
         #next we check for updates from RedHat
-        retval,cvexml = self.update_from_redhat(self.sources['redhat'])
+        retval,cvexml = self.update_from_redhat(self.sources['redhat'],localcertfile)
         if retval == True:
             self.read_redhat_files(cvexml)
         else:
             if self.dontconnect == True:
                 self.read_redhat_files(cvexml)
         #lastly, updates from NVD
-        retval = self.update_from_nvd()
+        retval = self.update_from_nvd(localcertfile)
         if retval == True:
             self.read_nvd_files(retval)
         else:
@@ -1155,6 +1168,7 @@ def main():
     aparser.add_argument("--ignore-rupdates", type=str, nargs='?',default='none',help='do not unmute if the only update is an added reference link.')
     aparser.add_argument("-k", "--keyword", type=str, default='none',help='filter results by specified keyword/comma-separated list of keywords in CVE description text from NVD. Can be combined with -p, to get a union set.') #lookup by keyword e.g. Intel
     aparser.add_argument("-l", "--log-mute", type=str, nargs='?',default='none',help='log a custom message upon muting. Can specify log file as an optional argument.')
+    aparser.add_argument("--local-certfile", default=False, nargs='?',help='specify a local CA file. File can be specified as argument, or defaults to redhatandnvdchain bundled with this program.')
     aparser.add_argument("--last", type=int, default=0,help='filter results to results with modification date in the last x days only. Works like the --after-date option, but takes an integer argument which is counted back from current date.')
     aparser.add_argument("-m", "--mute", type=str, default='none',help='set mute on or off, to silence/unsilence reporting. Must be used in combination with one of --product or --cve options') #mark results as seen or unseen
     aparser.add_argument("-n", "--no-connection", type=str, nargs='?',default='none',help='do not connect to external servers (NVD, Redhat), to fetch updated CVE information (useful while debugging).')
@@ -1168,6 +1182,16 @@ def main():
     args = aparser.parse_args()
     cve = args.cve
     cvefile = args.file
+    localcertfile = args.local_certfile
+    if localcertfile != False:
+        if localcertfile == None:
+            localcertfile = 'redhatandnvdchain'
+        try:
+            with open(localcertfile,'r') as inp:
+                lines=inp.readlines()
+        except:
+            print('Provided certfile %s could not be found/opened.'%localcertfile)
+            sys.exit(-1)
     ignoresupdates = args.ignore_supdates
     ignorerupdates = args.ignore_rupdates
     ejectunsub = args.eject_unsubscribed
@@ -1213,7 +1237,7 @@ def main():
             cveobj.resObj.ignoresupdates = True
         if ignorerupdates != 'none':
             cveobj.resObj.ignorerupdates = True
-        cveobj.update_store()
+        cveobj.update_store(localcertfile)
         sys.exit(0)
 
     if ejectunsub != 'none':
