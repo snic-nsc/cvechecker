@@ -37,9 +37,9 @@ split_report(){
                         else
                             subject="${status} ${score} ${subj} ${prods}"
                         fi
-                    else
-                        subject="${status} ${score} ${subj}"
-                    fi
+                else
+                    subject="${status} ${score} ${subj}"
+                fi
 
 				python mailsend.py --sender "$sender" --recips "$recips" --server $server --port $port --subject "$subject" --body singlereport
 			fi;
